@@ -334,7 +334,7 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
             <div className="flex items-center gap-3">
               <img src={userProfile?.photoURL || 'https://via.placeholder.com/50'} alt="PFP" className="w-14 h-14 border-2 rounded-sm" style={{borderColor: '#c0a0e0'}} />
               <div>
-                <div className="font-bold text-base">{userProfile?.displayName || user.email}</div>
+                <div className="font-bold text-base">{userProfile?.displayName || 'Operative'}</div>
                 <div className="text-xs" style={{color:'#8a7aaa'}}>Crew: {userProfile?.crew || 'Lone Wolf'}
                   {userProfile?.fruit && <span className="fruit-tag">{userProfile.fruit}</span>}
                 </div>
@@ -369,7 +369,7 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
             </>
           ) : (
             <form onSubmit={handleUpdateSettings} className="space-y-3 mt-2">
-               <div className="text-xs" style={{color:'#8a7aaa'}}>Email: {user.email}</div>
+
                <div>
                   <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Nickname:</label>
                   <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} required className="y2k-input" />
@@ -440,8 +440,7 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
             <div className="flex items-center gap-4 mb-4">
               <img src={userProfile?.photoURL || 'https://via.placeholder.com/80'} className="w-20 h-20 border-2 rounded-sm" style={{borderColor:'#c0a0e0'}} alt="" />
               <div>
-                <div className="font-bold text-lg">{userProfile?.displayName || user.email}</div>
-                <div className="text-xs" style={{color:'#8a7aaa'}}>{user.email}</div>
+                <div className="font-bold text-lg">{userProfile?.displayName || 'Operative'}</div>
                 <div className="text-xs mt-1" style={{color:'#8a7aaa'}}>Crew: <strong>{userProfile?.crew || 'Lone Wolf'}</strong></div>
                 <div className="text-xs" style={{color:'#8a7aaa'}}>Fruit: <strong>{userProfile?.fruit || 'None'}</strong> {userProfile?.fruit && FRUIT_REGISTRY.find(f=>f.id===userProfile.fruit)?.icon}</div>
               </div>
@@ -551,7 +550,7 @@ const AdminPanel = ({ user }) => {
           <table className="y2k-table">
             <thead>
               <tr>
-                <th>Email</th>
+                <th>User</th>
                 <th>Name / Crew / Fruit</th>
                 <th>Daily(H)</th>
                 <th>Total(H)</th>
@@ -563,7 +562,7 @@ const AdminPanel = ({ user }) => {
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
-                  <td className="text-xs max-w-[120px] truncate" title={u.email}>{u.email}</td>
+                  <td className="text-xs max-w-[120px] truncate" title={u.displayName}>{u.displayName || 'Unknown'}</td>
                   <td>
                     <div className="font-bold text-xs truncate max-w-[100px]">{u.displayName}</div>
                     <input type="text" defaultValue={u.crew || ''} placeholder="Crew"
