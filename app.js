@@ -20,57 +20,134 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// The specific Admin Email possessing god-mode
 const ADMIN_EMAIL = "aditya7karale@gmail.com"; 
 
 // ---------------------------------------------------------
-// UTILITY COMPONENTS
+// UTILITY: Y2K WINDOW COMPONENT
 // ---------------------------------------------------------
-
-const TerminalWindow = ({ title, children, className = "" }) => {
+const Y2KWindow = ({ title, children, className = "", danger = false }) => {
   return (
-    <div className={`border-2 border-neon-green bg-terminal-dark bg-opacity-80 shadow-lg shadow-[#39ff14]/20 flex flex-col ${className}`}>
-      {/* Title Bar */}
-      <div className="border-b-2 border-neon-green flex items-center justify-between px-3 py-1 bg-neon-green text-terminal-dark font-bold">
-        <div className="flex space-x-2 items-center">
-          <div className="w-3 h-3 rounded-full bg-red-500 border border-black cursor-pointer"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-400 border border-black cursor-pointer"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500 border border-black cursor-pointer"></div>
+    <div className={`y2k-window ${className}`}>
+      <div className={`y2k-titlebar ${danger ? 'admin-border' : ''}`} style={danger ? {background: 'linear-gradient(90deg, #f0b0b0, #e0a0a0, #d8a0b0)'} : {}}>
+        <span className={`y2k-titlebar-text ${danger ? 'admin-header' : ''}`}>{title}</span>
+        <div className="y2k-titlebar-controls">
+          <div className="y2k-ctrl-btn">_</div>
+          <div className="y2k-ctrl-btn">□</div>
+          <div className="y2k-ctrl-btn">✕</div>
         </div>
-        <div className="tracking-widest uppercase truncate">{title}</div>
-        <div className="w-12"></div> {/* Spacer */}
       </div>
-      {/* Content */}
-      <div className="p-4 overflow-y-auto flex-grow text-neon-green relative">
+      <div className="y2k-window-body">
         {children}
       </div>
     </div>
   );
 };
 
-const AsciiProgressBar = ({ current, goal }) => {
-  const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-  const totalBlocks = 20;
-  const filledBlocks = Math.floor((percentage / 100) * totalBlocks);
-  const emptyBlocks = totalBlocks - filledBlocks;
-  
-  const bar = `[${'|'.repeat(filledBlocks)}${'.'.repeat(Math.max(0, emptyBlocks))}]`;
-  
+// ---------------------------------------------------------
+// SPARKLE BACKGROUND
+// ---------------------------------------------------------
+const SparkleBackground = () => {
+  const sparkles = [
+    { type: 'cross', top: '8%', left: '5%', size: 30, delay: '0s' },
+    { type: 'diamond', top: '15%', left: '60%', size: 18, delay: '1s' },
+    { type: 'cross', top: '30%', left: '85%', size: 22, delay: '0.5s' },
+    { type: 'diamond', top: '50%', left: '3%', size: 16, delay: '2s' },
+    { type: 'cross', top: '65%', left: '45%', size: 26, delay: '1.5s' },
+    { type: 'diamond', top: '75%', left: '90%', size: 20, delay: '0.8s' },
+    { type: 'cross', top: '85%', left: '20%', size: 18, delay: '2.5s' },
+    { type: 'diamond', top: '40%', left: '70%', size: 14, delay: '3s' },
+    { type: 'cross', top: '55%', left: '15%', size: 20, delay: '1.2s' },
+  ];
+
   return (
-    <div className="font-mono mt-2">
-      <div>WEEKLY PROGRESS: {Number(current).toFixed(1)} / {goal.toFixed(1)} HOURS ({percentage.toFixed(1)}%)</div>
-      <div className="text-xl tracking-[0.2em] text-green-400">{bar}</div>
+    <div className="y2k-bg-sparkles">
+      {sparkles.map((s, i) => (
+        <div key={i}
+          className={s.type === 'cross' ? 'sparkle' : 'sparkle-diamond'}
+          style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }} />
+      ))}
     </div>
   );
 };
 
+// ---------------------------------------------------------
+// DESKTOP ICONS
+// ---------------------------------------------------------
+const DesktopIcons = () => (
+  <div className="desktop-icons">
+    <div className="desktop-icon">
+      <div className="folder-icon"></div>
+      <div className="desktop-icon-label">Documents</div>
+    </div>
+    <div className="desktop-icon">
+      <div className="folder-icon folder-yellow"></div>
+      <div className="desktop-icon-label">Memories</div>
+    </div>
+    <div className="desktop-icon">
+      <div className="folder-icon"></div>
+      <div className="desktop-icon-label">Folder</div>
+    </div>
+  </div>
+);
+
+// ---------------------------------------------------------
+// TASKBAR
+// ---------------------------------------------------------
+const Taskbar = ({ user, onLogout, onToggleAdmin, isAdmin, view }) => {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="y2k-taskbar">
+      <div className="y2k-start-btn">☆ Start</div>
+      {user && isAdmin && (
+        <button onClick={onToggleAdmin} className="y2k-btn" style={{padding:'2px 8px', fontSize:'11px'}}>
+          {view === 'ADMIN' ? '✕ Exit Root' : '⚡ God Mode'}
+        </button>
+      )}
+      {user && (
+        <button onClick={onLogout} className="y2k-btn" style={{padding:'2px 8px', fontSize:'11px'}}>
+          Logout
+        </button>
+      )}
+      <div className="y2k-taskbar-clock">
+        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------
+// ASCII PROGRESS BAR (Y2K Loading Style)
+// ---------------------------------------------------------
+const ProgressBar = ({ current, goal }) => {
+  const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  
+  return (
+    <div className="my-3">
+      <div className="flex justify-between text-xs mb-1" style={{color:'#6a6a8a'}}>
+        <span>Weekly Progress: {Number(current).toFixed(1)} / {goal.toFixed(1)} hrs</span>
+        <span>{percentage.toFixed(1)}%</span>
+      </div>
+      <div className="y2k-progress-track">
+        <div className="y2k-progress-fill" style={{ width: `${percentage}%` }}></div>
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------
+// BOUNTY CALCULATOR
+// ---------------------------------------------------------
 const calculateBounty = (u) => {
   if (!u) return 10000;
   const base = u.bountyBase !== undefined ? Number(u.bountyBase) : 10000;
   const dailyGoal = u.dailyStudyGoal > 0 ? Number(u.dailyStudyGoal) : (u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) / 7 : 2);
   const total = Number(u.totalStudyHours || 0);
-  
-  const percentageCompleted = total / dailyGoal; // 1.0 = 100%
+  const percentageCompleted = total / dailyGoal;
   let bountyAdd = 0;
   
   if (u.fruit === 'GUM-GUM') {
@@ -78,14 +155,12 @@ const calculateBounty = (u) => {
   } else if (u.fruit === 'CHOP-CHOP') {
     bountyAdd = Math.floor(percentageCompleted * 20) * 250;
   } else {
-    // STANDARD / DEFAULT
     bountyAdd = Math.floor(percentageCompleted * 10) * 500;
   }
   
-  // 5. Smooth-Smooth Fruit: Hardcoded Protection flag guarantees bounty never slips below base.
   let finalBounty = base + bountyAdd;
   if (u.fruit === 'SMOOTH-SMOOTH') {
-    finalBounty = Math.max(base, finalBounty); // Protection logic placeholder
+    finalBounty = Math.max(base, finalBounty);
   }
   
   return finalBounty;
@@ -104,26 +179,20 @@ const Dashboard = ({ user, userProfile }) => {
   const [rawSessions, setRawSessions] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   
-  // Settings Mode
   const [showSettings, setShowSettings] = useState(false);
   const [nickname, setNickname] = useState(userProfile?.displayName || "");
   const [goal, setGoal] = useState(userProfile?.dailyStudyGoal || (userProfile?.weeklyStudyGoal ? userProfile.weeklyStudyGoal / 7 : 2));
   
-  // Leaderboard Tab
   const [lbTab, setLbTab] = useState('GLOBAL');
 
   useEffect(() => {
     const unsubU = db.collection('users').onSnapshot(snap => setRawUsers(snap.docs.map(d => ({id:d.id, ...d.data()}))));
-    
-    // Calculate start of the week (Monday)
     const today = new Date();
     const day = today.getDay() || 7; 
     const monday = new Date(today);
     monday.setDate(today.getDate() - day + 1);
     const startOfWeekStr = monday.toISOString().split('T')[0];
-
     const unsubS = db.collection('studySessions').where('date', '>=', startOfWeekStr).onSnapshot(snap => setRawSessions(snap.docs.map(d => d.data())));
-
     return () => { unsubU(); unsubS(); };
   }, []);
 
@@ -132,16 +201,10 @@ const Dashboard = ({ user, userProfile }) => {
     rawSessions.forEach(s => {
       weeklyTotals[s.userId] = (weeklyTotals[s.userId] || 0) + s.duration;
     });
-
     const users = rawUsers.map(data => {
       const dailyGoal = data.dailyStudyGoal > 0 ? data.dailyStudyGoal : (data.weeklyStudyGoal ? data.weeklyStudyGoal / 7 : 2);
       const wHours = weeklyTotals[data.id] || 0;
-      return { 
-         ...data, 
-         dailyGoal,
-         weeklyHours: wHours, 
-         goalPercentage: (wHours / (dailyGoal * 7)) * 100 
-      };
+      return { ...data, dailyGoal, weeklyHours: wHours, goalPercentage: (wHours / (dailyGoal * 7)) * 100 };
     });
     users.sort((a,b) => b.goalPercentage - a.goalPercentage);
     setLeaderboard(users);
@@ -153,7 +216,6 @@ const Dashboard = ({ user, userProfile }) => {
     setLoading(true);
     let numDuration = Number(duration);
     
-    // 3. Glint-Glint Fruit: 1.1x Multiplier applied purely to the logged session mathematically
     if (userProfile?.fruit === 'GLINT-GLINT') {
       numDuration = numDuration * 1.1;
     }
@@ -162,29 +224,20 @@ const Dashboard = ({ user, userProfile }) => {
       const dbBatch = db.batch();
       const newSessionRef = db.collection('studySessions').doc();
       dbBatch.set(newSessionRef, {
-        userId: user.uid,
-        date,
-        duration: numDuration,
-        topic,
+        userId: user.uid, date, duration: numDuration, topic,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      
       const userRef = db.collection('users').doc(user.uid);
-      const updates = {
-        totalStudyHours: firebase.firestore.FieldValue.increment(numDuration)
-      };
-      
-      // 4. Human-Human Fruit: Flat +50 Bounty Base increase upon every successful commit!
+      const updates = { totalStudyHours: firebase.firestore.FieldValue.increment(numDuration) };
       if (userProfile?.fruit === 'HUMAN-HUMAN') {
         updates.bountyBase = firebase.firestore.FieldValue.increment(50);
       }
-      
       dbBatch.update(userRef, updates);
       await dbBatch.commit();
       setDuration("");
       setTopic("");
     } catch (err) {
-      alert("ERROR: FAILED TO INJECT RECORD");
+      alert("System error :( Failed to commit.");
     }
     setLoading(false);
   };
@@ -199,139 +252,128 @@ const Dashboard = ({ user, userProfile }) => {
       });
       setShowSettings(false);
     } catch (err) {
-      alert("ERROR: FAILED TO UPDATE PROFILE");
+      alert("System error :( Failed to update.");
     }
     setLoading(false);
   };
 
   const uniqueCrews = Array.from(new Set(leaderboard.map(u => u.crew).filter(Boolean)));
-  const visibleLeaderboard = lbTab === 'GLOBAL' 
-    ? leaderboard 
-    : leaderboard.filter(u => u.crew === lbTab);
-
-  // Derive current user's weekly target from leaderboard array if possible
+  const visibleLeaderboard = lbTab === 'GLOBAL' ? leaderboard : leaderboard.filter(u => u.crew === lbTab);
   const me = leaderboard.find(u => u.id === user.uid);
   const myWeeklyHours = me?.weeklyHours || 0;
   const myDailyGoal = me?.dailyGoal || 2;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-8 w-full max-w-7xl mx-auto">
-      <div className="space-y-6">
-        <TerminalWindow title="TRACKER.EXE" className="h-[450px]">
-          <div className="mb-6 flex items-center justify-between border-b border-neon-green/30 pb-4">
-            <div className="flex items-center space-x-4">
-              <img src={userProfile?.photoURL || 'https://via.placeholder.com/50'} alt="PFP" className="w-16 h-16 border border-neon-green p-1" />
-              <div>
-                <div className="text-xl glow-text">USER: {userProfile?.displayName || user.email}</div>
-                <div className="text-sm opacity-80">CREW: {userProfile?.crew || 'LONE WOLF'}</div>
-                <div className="text-sm text-yellow-400 font-bold tracking-widest mt-1">
-                  BOUNTY: {calculateBounty(userProfile).toLocaleString()} ฿
-                </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-8 w-full max-w-6xl mx-auto relative z-10">
+      {/* LEFT: TRACKER */}
+      <Y2KWindow title="TRACKER.EXE" className="h-[480px]">
+        <div className="flex items-center justify-between border-b pb-3 mb-3" style={{borderColor:'#e0d0f0'}}>
+          <div className="flex items-center gap-3">
+            <img src={userProfile?.photoURL || 'https://via.placeholder.com/50'} alt="PFP" className="w-14 h-14 border-2 rounded-sm" style={{borderColor: '#c0a0e0'}} />
+            <div>
+              <div className="font-bold text-base">{userProfile?.displayName || user.email}</div>
+              <div className="text-xs" style={{color:'#8a7aaa'}}>Crew: {userProfile?.crew || 'Lone Wolf'}
+                {userProfile?.fruit && <span className="fruit-tag">{userProfile.fruit}</span>}
+              </div>
+              <div className="text-xs text-bounty mt-1">
+                Bounty: {calculateBounty(userProfile).toLocaleString()} ฿
               </div>
             </div>
-            <button onClick={() => setShowSettings(!showSettings)} className="text-xs border border-neon-green px-2 py-1 hover:bg-neon-green hover:text-black transition-colors">
-              {showSettings ? '[RETURN]' : '[SETTINGS]'}
-            </button>
           </div>
+          <button onClick={() => setShowSettings(!showSettings)} className="y2k-btn" style={{fontSize:'11px', padding:'2px 8px'}}>
+            {showSettings ? '← Back' : '⚙ Settings'}
+          </button>
+        </div>
 
-          {!showSettings ? (
-            <>
-              <AsciiProgressBar current={myWeeklyHours} goal={myDailyGoal * 7} />
-              <form onSubmit={handleLogHours} className="mt-8 space-y-4">
-                <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}DATE:</span>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-                    className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase" />
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}DURATION (HRS):</span>
-                  <input type="number" step="0.1" value={duration} onChange={e => setDuration(e.target.value)} required
-                    placeholder="e.g. 2.5" className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase placeholder:text-neon-green/30" />
-                </div>
-                <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}TOPIC:</span>
-                  <input type="text" value={topic} onChange={e => setTopic(e.target.value)} required
-                    placeholder="Quantum Physics" className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase placeholder:text-neon-green/30" />
-                </div>
-                <button type="submit" disabled={loading} className="mt-4 w-full border-2 border-neon-green py-2 hover:bg-neon-green hover:text-black transition-colors font-bold tracking-widest uppercase">
-                  {loading ? "EXECUTING..." : "COMMIT_HOURS()"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <form onSubmit={handleUpdateSettings} className="space-y-4">
-               <div>Current Email: <span className="opacity-70">{user.email}</span></div>
-               <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}NICKNAME:</span>
-                  <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} required
-                    className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase" />
-               </div>
-               <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}DAILY_GOAL(HRS):</span>
-                  <input type="number" step="0.1" value={goal} onChange={e => setGoal(e.target.value)} required
-                    className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase" />
-               </div>
-               <button type="submit" disabled={loading} className="mt-4 w-full border-2 border-neon-green py-2 hover:bg-neon-green hover:text-black transition-colors font-bold tracking-widest uppercase">
-                  {loading ? "SAVING..." : "SAVE_SETTINGS()"}
-                </button>
-            </form>
-          )}
-        </TerminalWindow>
-      </div>
-
-      <div className="space-y-6">
-        <TerminalWindow title="LEADERBOARD.DAT" className="h-[450px]">
-          {uniqueCrews.length > 0 && (
-            <div className="flex space-x-4 mb-4 border-b border-neon-green/30 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
-              <button 
-                onClick={() => setLbTab('GLOBAL')} 
-                className={`text-sm ${lbTab === 'GLOBAL' ? 'text-white font-bold' : 'text-neon-green/50 hover:text-neon-green'}`}>
-                [GLOBAL]
+        {!showSettings ? (
+          <>
+            <ProgressBar current={myWeeklyHours} goal={myDailyGoal * 7} />
+            <form onSubmit={handleLogHours} className="space-y-3 mt-4">
+              <div>
+                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Date:</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} required className="y2k-input" />
+              </div>
+              <div>
+                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Duration (hrs):</label>
+                <input type="number" step="0.1" value={duration} onChange={e => setDuration(e.target.value)} required placeholder="e.g. 2.5" className="y2k-input" />
+              </div>
+              <div>
+                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Topic:</label>
+                <input type="text" value={topic} onChange={e => setTopic(e.target.value)} required placeholder="Quantum Physics" className="y2k-input" />
+              </div>
+              <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
+                {loading ? "Loading..." : "COMMIT_HOURS()"}
               </button>
-              {uniqueCrews.map(c => (
-                <button 
-                  key={c}
-                  onClick={() => setLbTab(c)} 
-                  className={`text-sm ${lbTab === c ? 'text-white font-bold' : 'text-neon-green/50 hover:text-neon-green'}`}>
-                  [CREW: {c}]
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="overflow-y-auto max-h-[350px]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b-2 border-neon-green text-neon-green/70">
-                  <th className="py-2">RNK</th>
-                  <th className="py-2">OPERATIVE</th>
-                  <th className="py-2 text-right">BOUNTY</th>
-                  <th className="py-2 text-right">% GOAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleLeaderboard.map((u, i) => (
-                  <tr key={u.id} className="border-b border-neon-green/20 hover:bg-neon-green/10 transition-colors">
-                    <td className="py-3 font-bold">{i + 1}</td>
-                    <td className="py-3 flex items-center space-x-2">
-                      <img src={u.photoURL} className="w-6 h-6 inline border border-neon-green/50 rounded-sm" alt="" />
-                      <div className="flex flex-col">
-                        <span className={user.uid === u.id ? 'glow-text text-white' : ''}>
-                          {u.displayName} {u.fruit && <span className="text-[10px] text-purple-400 font-bold ml-1">[{u.fruit}]</span>}
-                        </span>
-                        {lbTab === 'GLOBAL' && u.crew && <span className="text-[10px] opacity-60">[{u.crew}]</span>}
-                      </div>
-                    </td>
-                    <td className="py-3 text-right font-bold text-yellow-400">{calculateBounty(u).toLocaleString()} ฿</td>
-                    <td className="py-3 text-right font-bold tracking-widest text-[#39ff14]" title={`${Number(u.weeklyHours || 0).toFixed(1)} / ${(u.dailyGoal * 7).toFixed(1)} Weekly Hrs`}>
-                      {u.goalPercentage !== undefined ? u.goalPercentage.toFixed(1) : 0}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            </form>
+          </>
+        ) : (
+          <form onSubmit={handleUpdateSettings} className="space-y-3 mt-2">
+             <div className="text-xs" style={{color:'#8a7aaa'}}>Email: {user.email}</div>
+             <div>
+                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Nickname:</label>
+                <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} required className="y2k-input" />
+             </div>
+             <div>
+                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Daily Goal (hrs):</label>
+                <input type="number" step="0.1" value={goal} onChange={e => setGoal(e.target.value)} required className="y2k-input" />
+             </div>
+             <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
+                {loading ? "Saving..." : "SAVE_SETTINGS()"}
+              </button>
+          </form>
+        )}
+      </Y2KWindow>
+
+      {/* RIGHT: LEADERBOARD */}
+      <Y2KWindow title="LEADERBOARD.DAT" className="h-[480px]">
+        {uniqueCrews.length > 0 && (
+          <div className="flex gap-2 mb-3 pb-2 overflow-x-auto" style={{borderBottom: '1px solid #e0d0f0'}}>
+            <button onClick={() => setLbTab('GLOBAL')} className={`y2k-btn ${lbTab === 'GLOBAL' ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>
+              Global
+            </button>
+            {uniqueCrews.map(c => (
+              <button key={c} onClick={() => setLbTab(c)} className={`y2k-btn ${lbTab === c ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>
+                {c}
+              </button>
+            ))}
           </div>
-        </TerminalWindow>
-      </div>
+        )}
+        <div className="overflow-y-auto" style={{maxHeight: uniqueCrews.length > 0 ? '380px' : '420px'}}>
+          <table className="y2k-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Operative</th>
+                <th className="text-right">Bounty</th>
+                <th className="text-right">% Goal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleLeaderboard.map((u, i) => (
+                <tr key={u.id}>
+                  <td className="font-bold" style={{color:'#8a7aaa'}}>{i + 1}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <img src={u.photoURL} className="w-6 h-6 border rounded-sm" style={{borderColor:'#c0b0d8'}} alt="" />
+                      <div>
+                        <span className={user.uid === u.id ? 'font-bold text-vapor-purple' : ''}>
+                          {u.displayName}
+                          {u.fruit && <span className="fruit-tag">{u.fruit}</span>}
+                        </span>
+                        {lbTab === 'GLOBAL' && u.crew && <div className="text-[9px]" style={{color:'#a090c0'}}>[{u.crew}]</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-right text-bounty">{calculateBounty(u).toLocaleString()} ฿</td>
+                  <td className="text-right font-bold text-vapor-purple" title={`${Number(u.weeklyHours || 0).toFixed(1)} / ${(u.dailyGoal * 7).toFixed(1)} Weekly Hrs`}>
+                    {u.goalPercentage !== undefined ? u.goalPercentage.toFixed(1) : 0}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Y2KWindow>
     </div>
   );
 };
@@ -356,25 +398,19 @@ const AdminPanel = ({ user }) => {
     try {
       await db.collection('users').doc(uid).update({ [field]: val });
     } catch(err) {
-      alert("GOD-MODE ERROR: " + err.message);
+      alert("God-Mode Error: " + err.message);
     }
   };
 
   const handleDeleteUser = async (uid) => {
-    if(!confirm("WARNING: PURGE OPERATIVE ENTIRELY?")) return;
+    if(!confirm("WARNING: Purge operative entirely?")) return;
     try {
       const dbBatch = db.batch();
-      // Purge sessions
       const sessions = await db.collection('studySessions').where('userId', '==', uid).get();
-      sessions.docs.forEach(doc => {
-        dbBatch.delete(doc.ref);
-      });
-      // Purge user
+      sessions.docs.forEach(doc => dbBatch.delete(doc.ref));
       dbBatch.delete(db.collection('users').doc(uid));
       await dbBatch.commit();
-    } catch(err) {
-      alert("ERROR DELETING USER");
-    }
+    } catch(err) { alert("Error deleting user"); }
   };
 
   const openHistory = async (u) => {
@@ -384,11 +420,7 @@ const AdminPanel = ({ user }) => {
     sessions.sort((a,b) => new Date(b.date) - new Date(a.date));
     setUserSessions(sessions);
   };
-
-  const closeHistory = () => {
-    setHistoryModal(null);
-    setUserSessions([]);
-  };
+  const closeHistory = () => { setHistoryModal(null); setUserSessions([]); };
 
   const handleEditSession = async (sessionId, field, newValue, oldDuration) => {
     try {
@@ -397,58 +429,54 @@ const AdminPanel = ({ user }) => {
         if (isNaN(diff)) return;
         const dbBatch = db.batch();
         dbBatch.update(db.collection('studySessions').doc(sessionId), { duration: Number(newValue) });
-        dbBatch.update(db.collection('users').doc(historyModal.id), {
-          totalStudyHours: firebase.firestore.FieldValue.increment(diff)
-        });
+        dbBatch.update(db.collection('users').doc(historyModal.id), { totalStudyHours: firebase.firestore.FieldValue.increment(diff) });
         await dbBatch.commit();
       } else {
         await db.collection('studySessions').doc(sessionId).update({ [field]: newValue });
       }
-    } catch(e) { alert("ERROR EDITING SESSION"); }
+    } catch(e) { alert("Error editing session"); }
   };
 
   const handleDeleteSession = async (sessionId, duration) => {
-    if(!confirm("DELETE THIS SESSION?")) return;
+    if(!confirm("Delete this session?")) return;
     try {
       const dbBatch = db.batch();
       dbBatch.delete(db.collection('studySessions').doc(sessionId));
-      dbBatch.update(db.collection('users').doc(historyModal.id), {
-        totalStudyHours: firebase.firestore.FieldValue.increment(-Number(duration))
-      });
+      dbBatch.update(db.collection('users').doc(historyModal.id), { totalStudyHours: firebase.firestore.FieldValue.increment(-Number(duration)) });
       await dbBatch.commit();
       setUserSessions(prev => prev.filter(s => s.id !== sessionId));
-    } catch(e) { alert("ERROR"); }
-  }
+    } catch(e) { alert("Error"); }
+  };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto relative">
-      <TerminalWindow title="SUDO_ROOT.EXE" className="min-h-[500px]">
-        <h2 className="text-2xl mb-4 text-red-500 font-bold blinking-cursor">WARNING: GOD-MODE ACTIVATED</h2>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto relative z-10">
+      <Y2KWindow title="SUDO_ROOT.EXE" danger={true} className="min-h-[500px]">
+        <h2 className="text-lg mb-4 admin-header font-bold blinking-cursor">⚠ God-Mode Activated</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="y2k-table">
             <thead>
-              <tr className="border-b border-red-500 text-red-500">
-                <th className="py-2">EMAIL</th>
-                <th>NAME/CREW/FRUIT</th>
-                <th>DAILY(H)</th>
-                <th>TOTAL(H)</th>
-                <th>BASE_BOUNTY</th>
-                <th>ACTIONS</th>
+              <tr>
+                <th>Email</th>
+                <th>Name / Crew / Fruit</th>
+                <th>Daily(H)</th>
+                <th>Total(H)</th>
+                <th>Base Bounty</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map(u => (
-                <tr key={u.id} className="border-b border-neon-green/20 hover:bg-red-900/20">
-                  <td className="py-2 text-xs truncate max-w-[120px]" title={u.email}>{u.email}</td>
+                <tr key={u.id}>
+                  <td className="text-xs max-w-[120px] truncate" title={u.email}>{u.email}</td>
                   <td>
-                    <div className="truncate max-w-[100px]">{u.displayName}</div>
-                    <input type="text" defaultValue={u.crew || ''} placeholder="Assign Crew"
+                    <div className="font-bold text-xs truncate max-w-[100px]">{u.displayName}</div>
+                    <input type="text" defaultValue={u.crew || ''} placeholder="Crew"
                       onBlur={e => handleUpdateField(u.id, 'crew', e.target.value.trim().toUpperCase(), false)}
-                      className="bg-transparent border-b border-red-500/50 w-full text-[10px] text-red-400 focus:border-red-500 mb-1" />
+                      className="y2k-input mt-1" style={{fontSize:'10px', padding:'2px 4px'}} />
                     <select defaultValue={u.fruit || 'NONE'} 
                       onChange={e => handleUpdateField(u.id, 'fruit', e.target.value === 'NONE' ? null : e.target.value, false)}
-                      className="bg-transparent border-b border-purple-500/50 w-full text-[10px] text-purple-400 focus:border-purple-500 bg-terminal-dark">
-                      <option value="NONE">NO FRUIT</option>
+                      className="y2k-input mt-1" style={{fontSize:'10px', padding:'2px 4px', color:'#8060c0'}}>
+                      <option value="NONE">No Fruit</option>
                       <option value="GUM-GUM">GUM-GUM</option>
                       <option value="CHOP-CHOP">CHOP-CHOP</option>
                       <option value="GLINT-GLINT">GLINT-GLINT</option>
@@ -459,85 +487,79 @@ const AdminPanel = ({ user }) => {
                   <td>
                     <input type="number" step="0.1" defaultValue={u.dailyStudyGoal !== undefined ? u.dailyStudyGoal : (u.weeklyStudyGoal ? u.weeklyStudyGoal / 7 : 2)} 
                       onBlur={e => handleUpdateField(u.id, 'dailyStudyGoal', e.target.value, true)}
-                      className="bg-transparent border-b border-neon-green/50 w-12 text-center" />
+                      className="y2k-input" style={{width:'50px', textAlign:'center', fontSize:'12px'}} />
                   </td>
                   <td>
                     <input type="number" step="0.1" defaultValue={u.totalStudyHours} 
                       onBlur={e => handleUpdateField(u.id, 'totalStudyHours', e.target.value, true)}
-                      className="bg-transparent border-b border-neon-green/50 w-14 text-center" />
+                      className="y2k-input" style={{width:'60px', textAlign:'center', fontSize:'12px'}} />
                   </td>
                   <td>
                     <input type="number" step="500" defaultValue={u.bountyBase !== undefined ? u.bountyBase : 10000} 
                       onBlur={e => handleUpdateField(u.id, 'bountyBase', e.target.value, true)}
-                      title={`Current Computed Bounty: ${calculateBounty(u).toLocaleString()} ฿`}
-                      className="bg-transparent border-b border-yellow-500/50 w-20 text-center text-yellow-500 focus:border-yellow-500" />
+                      title={`Computed: ${calculateBounty(u).toLocaleString()} ฿`}
+                      className="y2k-input" style={{width:'70px', textAlign:'center', fontSize:'12px', color:'#c08020'}} />
                   </td>
-                  <td>
-                    <button onClick={() => openHistory(u)} className="text-[10px] bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 mx-1 hover:bg-red-500 hover:text-white">
-                      [HISTORY]
-                    </button>
-                    <button onClick={() => handleDeleteUser(u.id)} className="text-[10px] bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 hover:bg-red-500 hover:text-white">
-                      [DELETE]
-                    </button>
+                  <td className="space-x-1 whitespace-nowrap">
+                    <button onClick={() => openHistory(u)} className="y2k-btn" style={{fontSize:'10px', padding:'2px 6px'}}>History</button>
+                    <button onClick={() => handleDeleteUser(u.id)} className="y2k-btn y2k-btn-danger" style={{fontSize:'10px', padding:'2px 6px'}}>Delete</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </TerminalWindow>
+      </Y2KWindow>
 
+      {/* HISTORY MODAL */}
       {historyModal && (
-        <div className="absolute top-10 left-10 right-10 bottom-10 bg-black/90 border border-red-500 shadow-[0_0_20px_#ff0000] z-50 p-6 overflow-y-auto">
-          <div className="flex justify-between items-center mb-6 border-b border-red-500 pb-2">
-            <h3 className="text-xl text-red-500">HISTORY: {historyModal.displayName}</h3>
-            <button onClick={closeHistory} className="text-red-500 hover:text-white">[CLOSE_OVERRIDE]</button>
-          </div>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-neon-green/30 text-neon-green">
-                <th className="py-2">DATE</th>
-                <th>TOPIC</th>
-                <th>HRS</th>
-                <th>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userSessions.length === 0 ? <tr><td colSpan="4" className="py-4 text-center">NO DATA FOUND</td></tr> : null}
-              {userSessions.map(s => (
-                <tr key={s.id} className="border-b border-neon-green/20">
-                  <td className="py-2">
-                    <input type="date" defaultValue={s.date} 
-                      onBlur={e => handleEditSession(s.id, 'date', e.target.value, s.duration)}
-                      className="bg-transparent text-sm w-32 border-b border-transparent focus:border-red-500" />
-                  </td>
-                  <td>
-                    <input type="text" defaultValue={s.topic} 
-                      onBlur={e => handleEditSession(s.id, 'topic', e.target.value, s.duration)}
-                      className="bg-transparent text-sm w-full border-b border-transparent focus:border-red-500" />
-                  </td>
-                  <td>
-                    <input type="number" step="0.1" defaultValue={s.duration} 
-                      onBlur={e => handleEditSession(s.id, 'duration', e.target.value, s.duration)}
-                      className="bg-transparent text-sm w-12 border-b border-transparent focus:border-red-500 text-right" />
-                  </td>
-                  <td>
-                    <button onClick={() => handleDeleteSession(s.id, s.duration)} className="text-red-500 text-xs px-2 hover:bg-red-500 hover:text-white">
-                      [X]
-                    </button>
-                  </td>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <Y2KWindow title={`History: ${historyModal.displayName}`} danger={true} className="w-full max-w-2xl max-h-[80vh]">
+            <div className="flex justify-end mb-3">
+              <button onClick={closeHistory} className="y2k-btn y2k-btn-danger" style={{fontSize:'11px'}}>✕ Close</button>
+            </div>
+            <table className="y2k-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Topic</th>
+                  <th>Hrs</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="mt-4 text-xs opacity-70 text-red-400">
-            * Changes to HRS automatically adjust the operative's TOTAL HOURS.
-          </div>
+              </thead>
+              <tbody>
+                {userSessions.length === 0 ? <tr><td colSpan="4" className="text-center py-4" style={{color:'#a090c0'}}>No data found.</td></tr> : null}
+                {userSessions.map(s => (
+                  <tr key={s.id}>
+                    <td>
+                      <input type="date" defaultValue={s.date} 
+                        onBlur={e => handleEditSession(s.id, 'date', e.target.value, s.duration)}
+                        className="y2k-input" style={{fontSize:'11px', width:'120px'}} />
+                    </td>
+                    <td>
+                      <input type="text" defaultValue={s.topic} 
+                        onBlur={e => handleEditSession(s.id, 'topic', e.target.value, s.duration)}
+                        className="y2k-input" style={{fontSize:'11px'}} />
+                    </td>
+                    <td>
+                      <input type="number" step="0.1" defaultValue={s.duration} 
+                        onBlur={e => handleEditSession(s.id, 'duration', e.target.value, s.duration)}
+                        className="y2k-input" style={{fontSize:'11px', width:'50px', textAlign:'right'}} />
+                    </td>
+                    <td>
+                      <button onClick={() => handleDeleteSession(s.id, s.duration)} className="y2k-btn y2k-btn-danger" style={{fontSize:'10px', padding:'1px 6px'}}>✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="mt-3 text-xs" style={{color:'#a090c0'}}>* Editing hours auto-adjusts operative's total.</div>
+          </Y2KWindow>
         </div>
       )}
     </div>
   );
-}
+};
 
 // ---------------------------------------------------------
 // MAIN APP COMPONENT
@@ -574,7 +596,6 @@ function App() {
           } else {
             setUserProfile(docInfo.data());
           }
-          
           userRef.onSnapshot(doc => {
             if (doc.exists) setUserProfile(doc.data());
           });
@@ -582,13 +603,12 @@ function App() {
           setUserProfile(null);
         }
       } catch (err) {
-        console.error("Auth state error:", err);
-        alert("SYSTEM ERROR: Database access denied. Please ensure your Firestore Database is created and rules are set.");
+        console.error("Auth error:", err);
+        alert("System error :( Database access denied.");
       } finally {
         setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -597,7 +617,7 @@ function App() {
     try {
       await auth.signInWithPopup(provider);
     } catch(err) {
-      alert("CONNECTION REFUSED");
+      alert("System error :( Connection refused.");
     }
   };
 
@@ -606,44 +626,45 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-2xl blinking-cursor">INITIALIZING SYSTEM...</div>
+        <Y2KWindow title="Loading..." className="w-[300px]">
+          <div className="text-center py-4">
+            <div className="mb-3">Initializing system...</div>
+            <div className="y2k-progress-track">
+              <div className="y2k-progress-fill" style={{width: '60%', animation: 'none'}}></div>
+            </div>
+          </div>
+        </Y2KWindow>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-8">
-      <header className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center mb-8">
-        <div className="text-3xl font-bold glow-text tracking-widest uppercase truncate max-w-[50%]">
-          > STUDY_NET_V1.1
+    <div className="min-h-screen pb-12 relative">
+      <SparkleBackground />
+      <DesktopIcons />
+      <Taskbar user={user} onLogout={handleLogout} isAdmin={user?.email === ADMIN_EMAIL} view={view}
+        onToggleAdmin={() => setView(view === 'ADMIN' ? 'TRACKER' : 'ADMIN')} />
+
+      {/* HEADER */}
+      <header className="max-w-6xl mx-auto px-4 md:px-8 pt-6 pb-4 flex items-center justify-center relative z-10">
+        <div className="text-2xl font-bold tracking-widest" style={{color:'#4a3a6a'}}>
+          ☆ STUDY_NET ~ V2.0 ☆
         </div>
-        
-        {user ? (
-          <div className="flex space-x-2 md:space-x-4 flex-shrink-0">
-            {user.email === ADMIN_EMAIL && (
-              <button onClick={() => setView(view === 'ADMIN' ? 'TRACKER' : 'ADMIN')}
-                className="text-xs md:text-sm border border-red-500 text-red-500 px-2 md:px-4 py-1 hover:bg-red-500 hover:text-white transition-colors">
-                {view === 'ADMIN' ? 'EXIT_ROOT' : 'ENTER_GOD_MODE'}
-              </button>
-            )}
-            <button onClick={handleLogout} className="text-xs md:text-sm border border-neon-green px-2 md:px-4 py-1 hover:bg-neon-green hover:text-black transition-colors">
-              LOGOUT
-            </button>
-          </div>
-        ) : null}
       </header>
 
+      {/* MAIN CONTENT */}
       {!user ? (
-        <div className="flex items-center justify-center mt-20">
-          <TerminalWindow title="AUTH_GATEWAY.EXE" className="w-[400px]">
-             <div className="text-center space-y-8 py-8">
-               <div className="text-xl">ACCESS RESTRICTED</div>
-               <p className="text-sm opacity-80">PLEASE IDENTIFY YOURSELF TO CONTINUE.</p>
-               <button onClick={handleLogin} className="w-full border-2 border-neon-green py-3 font-bold text-lg hover:bg-neon-green hover:text-black transition-colors glow-border">
-                 > INITIALIZE GOOGLE AUTH
+        <div className="flex items-center justify-center mt-16 relative z-10">
+          <Y2KWindow title="Welcome!" className="w-[380px]">
+             <div className="text-center space-y-6 py-6">
+               <div className="y2k-gradient-box w-24 h-24 mx-auto rounded-sm"></div>
+               <div className="text-base font-bold">Access Restricted</div>
+               <p className="text-xs" style={{color:'#8a7aaa'}}>Please identify yourself to continue.</p>
+               <button onClick={handleLogin} className="y2k-btn y2k-btn-primary w-full text-sm">
+                 ☆ Initialize Google Auth
                </button>
              </div>
-          </TerminalWindow>
+          </Y2KWindow>
         </div>
       ) : (
         view === 'ADMIN' && user.email === ADMIN_EMAIL ? (
