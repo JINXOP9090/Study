@@ -1,59 +1,395 @@
-/* Base retro terminal styles */
-::-webkit-scrollbar {
-  width: 12px;
-}
-::-webkit-scrollbar-track {
-  background: #040b14; 
-  border-left: 1px solid #1a3a2a;
-}
-::-webkit-scrollbar-thumb {
-  background: #1a3a2a; 
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #39ff14; 
+/* =====================================================
+   VAPORWAVE Y2K OS THEME - STUDY_NET_V2.0
+   =====================================================*/
+
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap');
+
+/* ---- GLOBALS ---- */
+body {
+  font-family: 'DotGothic16', 'VT323', monospace;
+  background-color: #a8c4f0;
+  color: #2a2a3d;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Glowing utilities */
-.glow-text {
-  text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14;
-}
-.glow-border:hover {
-  box-shadow: 0 0 10px #39ff14, inset 0 0 10px #39ff14;
-}
-
-/* CRT monitor effect */
+/* Remove CRT scanlines from old theme */
 body::before {
-  content: " ";
-  display: block;
+  content: none !important;
+  display: none !important;
+}
+
+/* ---- CUSTOM SCROLLBAR ---- */
+::-webkit-scrollbar { width: 14px; }
+::-webkit-scrollbar-track { background: #d8c8e8; border-left: 2px solid #b8a0d0; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #f0b0d0, #b0a0e0); border: 2px solid #b8a0d0; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #f0a0c0, #a090d0); }
+
+/* ---- SELECTION ---- */
+::selection { background: #f5b0d8; color: #2a2a3d; }
+
+/* ---- SPARKLE BACKGROUND DECORATIONS ---- */
+.y2k-bg-sparkles {
   position: fixed;
-  top: 0;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.sparkle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  animation: sparkle-pulse 3s ease-in-out infinite;
+}
+
+.sparkle::before, .sparkle::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(135deg, #e8d0f8, #f0b8e0, #b8d0f8);
+}
+.sparkle::before {
+  top: 50%;
   left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 50;
-  background-size: 100% 2px, 3px 100%;
+  width: 100%;
+  height: 3px;
+  transform: translateY(-50%);
+}
+.sparkle::after {
+  left: 50%;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.sparkle-diamond {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, rgba(240, 180, 220, 0.6), rgba(180, 200, 240, 0.6));
+  transform: rotate(45deg);
+  animation: sparkle-pulse 4s ease-in-out infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+}
+
+.sparkle-diamond {
+  animation: diamond-pulse 4s ease-in-out infinite;
+}
+@keyframes diamond-pulse {
+  0%, 100% { opacity: 0.3; transform: rotate(45deg) scale(0.8); }
+  50% { opacity: 0.8; transform: rotate(45deg) scale(1.1); }
+}
+
+/* ---- DESKTOP FOLDER ICONS ---- */
+.desktop-icons {
+  position: fixed;
+  right: 20px;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1;
   pointer-events: none;
 }
 
-/* Blinking cursor */
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.folder-icon {
+  width: 44px;
+  height: 36px;
+  background: linear-gradient(180deg, #f5c0d8, #f0a0c0);
+  border-radius: 2px 8px 4px 4px;
+  position: relative;
+  border: 2px solid #d89ab8;
+}
+.folder-icon::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 20px;
+  height: 10px;
+  background: #f0a0c0;
+  border-radius: 4px 4px 0 0;
+  border: 2px solid #d89ab8;
+  border-bottom: none;
+}
+
+.folder-yellow {
+  background: linear-gradient(180deg, #f5e0a0, #e8c870);
+  border-color: #c8a850;
+}
+.folder-yellow::before {
+  background: #e8c870;
+  border-color: #c8a850;
+}
+
+.desktop-icon-label {
+  font-size: 10px;
+  color: #4a4a6a;
+  text-align: center;
+}
+
+/* ---- Y2K WINDOW COMPONENT ---- */
+.y2k-window {
+  background: #ffffff;
+  border: 2px solid #8080a0;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #a0a0b8,
+    3px 3px 8px rgba(100, 80, 140, 0.15),
+    0 0 20px rgba(240, 180, 220, 0.08),
+    0 0 40px rgba(180, 200, 240, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.y2k-titlebar {
+  background: linear-gradient(90deg, #e8b0d8, #c0b0e8, #a8c8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border-bottom: 2px solid #a0a0b8;
+  min-height: 26px;
+  cursor: default;
+  user-select: none;
+}
+
+.y2k-titlebar-text {
+  font-size: 13px;
+  font-weight: bold;
+  color: #2a2a3d;
+  letter-spacing: 1px;
+  flex-grow: 1;
+  padding-left: 4px;
+}
+
+.y2k-titlebar-controls {
+  display: flex;
+  gap: 3px;
+}
+
+.y2k-ctrl-btn {
+  width: 18px;
+  height: 18px;
+  background: #e0d8f0;
+  border: 1.5px solid #a0a0b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #4a4a6a;
+  cursor: pointer;
+  line-height: 1;
+  font-weight: bold;
+}
+.y2k-ctrl-btn:hover {
+  background: #f0e0f8;
+}
+
+.y2k-window-body {
+  padding: 16px;
+  flex-grow: 1;
+  overflow-y: auto;
+  color: #2a2a3d;
+  position: relative;
+}
+
+/* ---- GRADIENT ACCENT BOX ---- */
+.y2k-gradient-box {
+  background: linear-gradient(135deg, #c8d8f8, #f0b8e0, #f5c8a0);
+  border: 2px solid #6a6a8a;
+  aspect-ratio: 1;
+}
+
+/* ---- PROGRESS BAR (Loading Style) ---- */
+.y2k-progress-track {
+  background: #ffffff;
+  border: 2px solid #8080a0;
+  padding: 3px;
+  height: 24px;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.y2k-progress-fill {
+  background: linear-gradient(90deg, #a0a0f0, #8080e0);
+  height: 100%;
+  transition: width 0.6s ease;
+  image-rendering: pixelated;
+  background-size: 12px 100%;
+}
+
+/* ---- BUTTONS (Y2K Dialog) ---- */
+.y2k-btn {
+  background: #e8e0f0;
+  border: 2px solid #a0a0b8;
+  padding: 4px 16px;
+  font-family: 'DotGothic16', monospace;
+  font-size: 13px;
+  color: #2a2a3d;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #c8c0d8;
+  transition: all 0.1s;
+  letter-spacing: 1px;
+}
+.y2k-btn:hover {
+  background: #f0d8f8;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #d0c0e0, 0 0 8px rgba(240, 180, 220, 0.3);
+}
+.y2k-btn:active {
+  box-shadow: inset -1px -1px 0 #ffffff, inset 1px 1px 0 #a0a0b8;
+}
+
+.y2k-btn-primary {
+  background: linear-gradient(180deg, #e0b8f0, #c8a0e0);
+  border-color: #9080b0;
+  color: #2a2a3d;
+}
+.y2k-btn-primary:hover {
+  background: linear-gradient(180deg, #e8c0f8, #d0a8e8);
+  box-shadow: 0 0 12px rgba(200, 160, 240, 0.4);
+}
+
+.y2k-btn-danger {
+  background: linear-gradient(180deg, #f0b8b8, #e0a0a0);
+  border-color: #c08080;
+}
+.y2k-btn-danger:hover {
+  background: linear-gradient(180deg, #f8c0c0, #e8a8a8);
+  box-shadow: 0 0 12px rgba(240, 160, 160, 0.4);
+}
+
+/* ---- INPUT (Y2K style) ---- */
+.y2k-input {
+  background: #ffffff;
+  border: 2px solid #a0a0b8;
+  padding: 4px 8px;
+  font-family: 'DotGothic16', monospace;
+  font-size: 13px;
+  color: #2a2a3d;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.08);
+  outline: none;
+  width: 100%;
+}
+.y2k-input:focus {
+  border-color: #c0a0e0;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.08), 0 0 6px rgba(200, 160, 240, 0.3);
+}
+
+/* ---- TABLES ---- */
+.y2k-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.y2k-table th {
+  border-bottom: 2px solid #c0b0d8;
+  color: #6a5a8a;
+  padding: 6px 4px;
+  text-align: left;
+  font-weight: bold;
+}
+.y2k-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #e8e0f0;
+}
+.y2k-table tr:hover td {
+  background: rgba(240, 200, 230, 0.15);
+}
+
+/* ---- ADMIN DANGER ACCENTS ---- */
+.admin-header {
+  color: #c04060;
+}
+.admin-border {
+  border-color: #c04060 !important;
+}
+
+/* ---- BLINKING CURSOR (kept) ---- */
 .blinking-cursor::after {
   content: '█';
   animation: blink 1s step-end infinite;
+  color: #c04060;
 }
-
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 
-/* Custom selection */
-::selection {
-  background: #39ff14;
-  color: #040b14;
+/* ---- TASKBAR ---- */
+.y2k-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: linear-gradient(180deg, #d8d0e8, #c0b8d8);
+  border-top: 2px solid #a0a0b8;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  z-index: 100;
+  gap: 8px;
 }
 
-/* Input reset for terminal feel */
-input:focus, textarea:focus {
-  outline: none;
+.y2k-start-btn {
+  background: linear-gradient(180deg, #e8c0f0, #c8a0d8);
+  border: 2px solid #a090b8;
+  padding: 2px 12px;
+  font-family: 'DotGothic16', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: #2a2a3d;
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0 #f0d8f8, inset -1px -1px 0 #a890c0;
+}
+
+.y2k-taskbar-clock {
+  margin-left: auto;
+  font-size: 12px;
+  color: #4a4a6a;
+  background: #e8e0f0;
+  border: 1.5px solid #b0a0c8;
+  padding: 2px 10px;
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05);
+}
+
+/* ---- FRUIT TAG ---- */
+.fruit-tag {
+  display: inline-block;
+  background: linear-gradient(90deg, #e0b0f0, #b0c8f8);
+  color: #4a3a6a;
+  padding: 0px 4px;
+  font-size: 9px;
+  font-weight: bold;
+  border: 1px solid #c0a0d8;
+  margin-left: 4px;
+}
+
+/* ---- MISC HELPERS ---- */
+.text-vapor-pink { color: #e060a0; }
+.text-vapor-purple { color: #8060c0; }
+.text-vapor-blue { color: #6080c0; }
+.text-bounty { color: #c08020; font-weight: bold; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .desktop-icons { display: none; }
+  .y2k-taskbar { display: none; }
 }
