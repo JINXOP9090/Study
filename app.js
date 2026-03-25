@@ -64,6 +64,15 @@ const AsciiProgressBar = ({ current, goal }) => {
   );
 };
 
+const calculateBounty = (u) => {
+  if (!u) return 10000;
+  const base = u.bountyBase !== undefined ? Number(u.bountyBase) : 10000;
+  const goal = u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) : 10;
+  const total = Number(u.totalStudyHours || 0);
+  const increments = Math.floor((total / goal) * 10);
+  return base + (increments * 500);
+};
+
 // ---------------------------------------------------------
 // MAIN DASHBOARD COMPONENT
 // ---------------------------------------------------------
@@ -151,6 +160,9 @@ const Dashboard = ({ user, userProfile }) => {
               <div>
                 <div className="text-xl glow-text">USER: {userProfile?.displayName || user.email}</div>
                 <div className="text-sm opacity-80">CREW: {userProfile?.crew || 'LONE WOLF'}</div>
+                <div className="text-sm text-yellow-400 font-bold tracking-widest mt-1">
+                  BOUNTY: {calculateBounty(userProfile).toLocaleString()} ฿
+                </div>
               </div>
             </div>
             <button onClick={() => setShowSettings(!showSettings)} className="text-xs border border-neon-green px-2 py-1 hover:bg-neon-green hover:text-black transition-colors">
@@ -225,6 +237,7 @@ const Dashboard = ({ user, userProfile }) => {
                 <tr className="border-b-2 border-neon-green text-neon-green/70">
                   <th className="py-2">RNK</th>
                   <th className="py-2">OPERATIVE</th>
+                  <th className="py-2 text-right">BOUNTY</th>
                   <th className="py-2 text-right">HOURS</th>
                 </tr>
               </thead>
@@ -239,6 +252,7 @@ const Dashboard = ({ user, userProfile }) => {
                         {lbTab === 'GLOBAL' && u.crew && <span className="text-[10px] opacity-60">[{u.crew}]</span>}
                       </div>
                     </td>
+                    <td className="py-3 text-right font-bold text-yellow-400">{calculateBounty(u).toLocaleString()} ฿</td>
                     <td className="py-3 text-right font-bold tracking-widest text-[#39ff14]">{Number(u.totalStudyHours || 0).toFixed(1)}</td>
                   </tr>
                 ))}
@@ -347,6 +361,7 @@ const AdminPanel = ({ user }) => {
                 <th>NAME/CREW</th>
                 <th>GOAL(H)</th>
                 <th>TOTAL(H)</th>
+                <th>BASE_BOUNTY</th>
                 <th>ACTIONS</th>
               </tr>
             </thead>
@@ -355,7 +370,7 @@ const AdminPanel = ({ user }) => {
                 <tr key={u.id} className="border-b border-neon-green/20 hover:bg-red-900/20">
                   <td className="py-2 text-xs truncate max-w-[120px]" title={u.email}>{u.email}</td>
                   <td>
-                    <div>{u.displayName}</div>
+                    <div className="truncate max-w-[100px]">{u.displayName}</div>
                     <input type="text" defaultValue={u.crew || ''} placeholder="Assign Crew"
                       onBlur={e => handleUpdateField(u.id, 'crew', e.target.value.trim().toUpperCase(), false)}
                       className="bg-transparent border-b border-red-500/50 w-24 text-[10px] text-red-400 focus:border-red-500" />
@@ -368,13 +383,19 @@ const AdminPanel = ({ user }) => {
                   <td>
                     <input type="number" defaultValue={u.totalStudyHours} 
                       onBlur={e => handleUpdateField(u.id, 'totalStudyHours', e.target.value, true)}
-                      className="bg-transparent border-b border-neon-green/50 w-16 text-center" />
+                      className="bg-transparent border-b border-neon-green/50 w-14 text-center" />
                   </td>
                   <td>
-                    <button onClick={() => openHistory(u)} className="text-xs bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 mx-1 hover:bg-red-500 hover:text-white">
+                    <input type="number" step="500" defaultValue={u.bountyBase !== undefined ? u.bountyBase : 10000} 
+                      onBlur={e => handleUpdateField(u.id, 'bountyBase', e.target.value, true)}
+                      title={`Current Computed Bounty: ${calculateBounty(u).toLocaleString()} ฿`}
+                      className="bg-transparent border-b border-yellow-500/50 w-20 text-center text-yellow-500 focus:border-yellow-500" />
+                  </td>
+                  <td>
+                    <button onClick={() => openHistory(u)} className="text-[10px] bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 mx-1 hover:bg-red-500 hover:text-white">
                       [HISTORY]
                     </button>
-                    <button onClick={() => handleDeleteUser(u.id)} className="text-xs bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 hover:bg-red-500 hover:text-white">
+                    <button onClick={() => handleDeleteUser(u.id)} className="text-[10px] bg-red-600/20 text-red-500 border border-red-500 px-1 py-1 hover:bg-red-500 hover:text-white">
                       [DELETE]
                     </button>
                   </td>
@@ -463,6 +484,7 @@ function App() {
               weeklyStudyGoal: 10,
               totalStudyHours: 0,
               crew: null,
+              bountyBase: 10000,
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await userRef.set(newProfile);
