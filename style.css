@@ -1,0 +1,59 @@
+/* Base retro terminal styles */
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #040b14; 
+  border-left: 1px solid #1a3a2a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a3a2a; 
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #39ff14; 
+}
+
+/* Glowing utilities */
+.glow-text {
+  text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14;
+}
+.glow-border:hover {
+  box-shadow: 0 0 10px #39ff14, inset 0 0 10px #39ff14;
+}
+
+/* CRT monitor effect */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 50;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Blinking cursor */
+.blinking-cursor::after {
+  content: '█';
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Custom selection */
+::selection {
+  background: #39ff14;
+  color: #040b14;
+}
+
+/* Input reset for terminal feel */
+input:focus, textarea:focus {
+  outline: none;
+}
