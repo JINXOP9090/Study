@@ -1,4 +1,4 @@
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useCallback } = React;
 
 // ---------------------------------------------------------
 // FIREBASE CONFIGURATION
@@ -22,23 +22,42 @@ const db = firebase.firestore();
 
 const ADMIN_EMAIL = "aditya7karale@gmail.com"; 
 
+// Devil Fruit Registry
+const FRUIT_REGISTRY = [
+  { id: 'GUM-GUM', name: 'Gum-Gum Fruit', desc: '+600 ฿ per 10% milestone (instead of 500)', icon: '🍖' },
+  { id: 'CHOP-CHOP', name: 'Chop-Chop Fruit', desc: '+250 ฿ every 5% milestone', icon: '🔪' },
+  { id: 'GLINT-GLINT', name: 'Glint-Glint Fruit', desc: '1.1x multiplier on logged hours', icon: '✨' },
+  { id: 'HUMAN-HUMAN', name: 'Human-Human Fruit', desc: '+50 ฿ attendance bonus per commit', icon: '🧠' },
+  { id: 'SMOOTH-SMOOTH', name: 'Smooth-Smooth Fruit', desc: 'Bounty can never decrease', icon: '🛡️' },
+];
+
 // ---------------------------------------------------------
-// UTILITY: Y2K WINDOW COMPONENT
+// UTILITY: Y2K WINDOW COMPONENT (Functional Controls)
 // ---------------------------------------------------------
-const Y2KWindow = ({ title, children, className = "", danger = false }) => {
+const Y2KWindow = ({ title, children, className = "", danger = false, windowId, windowState, onMinimize, onMaximize, onClose, style }) => {
+  const isMinimized = windowState === 'minimized';
+  const isMaximized = windowState === 'maximized';
+  const isClosed = windowState === 'closed';
+
+  if (isClosed) return null;
+
   return (
-    <div className={`y2k-window ${className}`}>
-      <div className={`y2k-titlebar ${danger ? 'admin-border' : ''}`} style={danger ? {background: 'linear-gradient(90deg, #f0b0b0, #e0a0a0, #d8a0b0)'} : {}}>
+    <div className={`y2k-window ${isMaximized ? 'y2k-window-maximized' : ''} ${className}`} style={style}>
+      <div className={`y2k-titlebar ${danger ? 'admin-border' : ''}`} 
+        style={danger ? {background: 'linear-gradient(90deg, #f0b0b0, #e0a0a0, #d8a0b0)'} : {}}
+        onDoubleClick={onMaximize}>
         <span className={`y2k-titlebar-text ${danger ? 'admin-header' : ''}`}>{title}</span>
         <div className="y2k-titlebar-controls">
-          <div className="y2k-ctrl-btn">_</div>
-          <div className="y2k-ctrl-btn">□</div>
-          <div className="y2k-ctrl-btn">✕</div>
+          {onMinimize && <div className="y2k-ctrl-btn" onClick={onMinimize} title="Minimize">_</div>}
+          {onMaximize && <div className="y2k-ctrl-btn" onClick={onMaximize} title="Maximize">□</div>}
+          {onClose && <div className="y2k-ctrl-btn y2k-ctrl-close" onClick={onClose} title="Close">✕</div>}
         </div>
       </div>
-      <div className="y2k-window-body">
-        {children}
-      </div>
+      {!isMinimized && (
+        <div className="y2k-window-body">
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -58,7 +77,6 @@ const SparkleBackground = () => {
     { type: 'diamond', top: '40%', left: '70%', size: 14, delay: '3s' },
     { type: 'cross', top: '55%', left: '15%', size: 20, delay: '1.2s' },
   ];
-
   return (
     <div className="y2k-bg-sparkles">
       {sparkles.map((s, i) => (
@@ -71,38 +89,82 @@ const SparkleBackground = () => {
 };
 
 // ---------------------------------------------------------
-// DESKTOP ICONS
+// DESKTOP ICONS (Clickable Launchers)
 // ---------------------------------------------------------
-const DesktopIcons = () => (
+const DesktopIcons = ({ onOpen }) => (
   <div className="desktop-icons">
-    <div className="desktop-icon">
-      <div className="folder-icon"></div>
-      <div className="desktop-icon-label">Documents</div>
+    <div className="desktop-icon" onClick={() => onOpen('leaderboard')} title="Open Leaderboard">
+      <div className="folder-icon folder-blue">
+        <span className="folder-emoji">📊</span>
+      </div>
+      <div className="desktop-icon-label">Leaderboard</div>
     </div>
-    <div className="desktop-icon">
-      <div className="folder-icon folder-yellow"></div>
-      <div className="desktop-icon-label">Memories</div>
+    <div className="desktop-icon" onClick={() => onOpen('profile')} title="Open Profile">
+      <div className="folder-icon">
+        <span className="folder-emoji">👤</span>
+      </div>
+      <div className="desktop-icon-label">My Profile</div>
     </div>
-    <div className="desktop-icon">
-      <div className="folder-icon"></div>
-      <div className="desktop-icon-label">Folder</div>
+    <div className="desktop-icon" onClick={() => onOpen('fruits')} title="Devil Fruits">
+      <div className="folder-icon folder-yellow">
+        <span className="folder-emoji">🍇</span>
+      </div>
+      <div className="desktop-icon-label">Devil Fruits</div>
     </div>
   </div>
 );
 
 // ---------------------------------------------------------
+// DEVIL FRUITS INFO WINDOW
+// ---------------------------------------------------------
+const DevilFruitsWindow = ({ userProfile }) => {
+  return (
+    <div className="space-y-3">
+      <div className="text-xs mb-2" style={{color:'#8a7aaa'}}>
+        Your Fruit: <strong>{userProfile?.fruit ? `${FRUIT_REGISTRY.find(f=>f.id===userProfile.fruit)?.icon || ''} ${userProfile.fruit}` : 'None assigned'}</strong>
+      </div>
+      {FRUIT_REGISTRY.map(f => (
+        <div key={f.id} className="flex items-start gap-3 p-2" style={{
+          border: userProfile?.fruit === f.id ? '2px solid #c0a0e0' : '1px solid #e0d8f0',
+          background: userProfile?.fruit === f.id ? 'rgba(192, 160, 224, 0.1)' : 'transparent'
+        }}>
+          <div className="text-2xl">{f.icon}</div>
+          <div>
+            <div className="font-bold text-sm">{f.name} {userProfile?.fruit === f.id && <span className="fruit-tag">EQUIPPED</span>}</div>
+            <div className="text-xs" style={{color:'#8a7aaa'}}>{f.desc}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------
 // TASKBAR
 // ---------------------------------------------------------
-const Taskbar = ({ user, onLogout, onToggleAdmin, isAdmin, view }) => {
+const Taskbar = ({ user, onLogout, onToggleAdmin, isAdmin, view, windowStates, onRestoreWindow }) => {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
     return () => clearInterval(t);
   }, []);
 
+  const minimizedWindows = Object.entries(windowStates).filter(([k, v]) => v === 'minimized' || v === 'closed');
+
   return (
     <div className="y2k-taskbar">
       <div className="y2k-start-btn">☆ Start</div>
+      
+      {/* Taskbar buttons for minimized/closed windows */}
+      {minimizedWindows.map(([id, state]) => (
+        <button key={id} onClick={() => onRestoreWindow(id)} className="y2k-taskbar-item" title={`Restore ${id}`}>
+          {id === 'tracker' && '📝 Tracker'}
+          {id === 'leaderboard' && '📊 Leaderboard'}
+          {id === 'profile' && '👤 Profile'}
+          {id === 'fruits' && '🍇 Fruits'}
+        </button>
+      ))}
+
       {user && isAdmin && (
         <button onClick={onToggleAdmin} className="y2k-btn" style={{padding:'2px 8px', fontSize:'11px'}}>
           {view === 'ADMIN' ? '✕ Exit Root' : '⚡ God Mode'}
@@ -121,11 +183,10 @@ const Taskbar = ({ user, onLogout, onToggleAdmin, isAdmin, view }) => {
 };
 
 // ---------------------------------------------------------
-// ASCII PROGRESS BAR (Y2K Loading Style)
+// PROGRESS BAR (Y2K Loading Style)
 // ---------------------------------------------------------
 const ProgressBar = ({ current, goal }) => {
   const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-  
   return (
     <div className="my-3">
       <div className="flex justify-between text-xs mb-1" style={{color:'#6a6a8a'}}>
@@ -149,7 +210,6 @@ const calculateBounty = (u) => {
   const total = Number(u.totalStudyHours || 0);
   const percentageCompleted = total / dailyGoal;
   let bountyAdd = 0;
-  
   if (u.fruit === 'GUM-GUM') {
     bountyAdd = Math.floor(percentageCompleted * 10) * 600;
   } else if (u.fruit === 'CHOP-CHOP') {
@@ -157,19 +217,17 @@ const calculateBounty = (u) => {
   } else {
     bountyAdd = Math.floor(percentageCompleted * 10) * 500;
   }
-  
   let finalBounty = base + bountyAdd;
   if (u.fruit === 'SMOOTH-SMOOTH') {
     finalBounty = Math.max(base, finalBounty);
   }
-  
   return finalBounty;
 };
 
 // ---------------------------------------------------------
 // MAIN DASHBOARD COMPONENT
 // ---------------------------------------------------------
-const Dashboard = ({ user, userProfile }) => {
+const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [duration, setDuration] = useState("");
   const [topic, setTopic] = useState("");
@@ -198,9 +256,7 @@ const Dashboard = ({ user, userProfile }) => {
 
   useEffect(() => {
     const weeklyTotals = {};
-    rawSessions.forEach(s => {
-      weeklyTotals[s.userId] = (weeklyTotals[s.userId] || 0) + s.duration;
-    });
+    rawSessions.forEach(s => { weeklyTotals[s.userId] = (weeklyTotals[s.userId] || 0) + s.duration; });
     const users = rawUsers.map(data => {
       const dailyGoal = data.dailyStudyGoal > 0 ? data.dailyStudyGoal : (data.weeklyStudyGoal ? data.weeklyStudyGoal / 7 : 2);
       const wHours = weeklyTotals[data.id] || 0;
@@ -215,30 +271,18 @@ const Dashboard = ({ user, userProfile }) => {
     if (!duration || isNaN(duration) || Number(duration) <= 0 || !topic) return;
     setLoading(true);
     let numDuration = Number(duration);
-    
-    if (userProfile?.fruit === 'GLINT-GLINT') {
-      numDuration = numDuration * 1.1;
-    }
-    
+    if (userProfile?.fruit === 'GLINT-GLINT') { numDuration = numDuration * 1.1; }
     try {
       const dbBatch = db.batch();
       const newSessionRef = db.collection('studySessions').doc();
-      dbBatch.set(newSessionRef, {
-        userId: user.uid, date, duration: numDuration, topic,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      dbBatch.set(newSessionRef, { userId: user.uid, date, duration: numDuration, topic, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
       const userRef = db.collection('users').doc(user.uid);
       const updates = { totalStudyHours: firebase.firestore.FieldValue.increment(numDuration) };
-      if (userProfile?.fruit === 'HUMAN-HUMAN') {
-        updates.bountyBase = firebase.firestore.FieldValue.increment(50);
-      }
+      if (userProfile?.fruit === 'HUMAN-HUMAN') { updates.bountyBase = firebase.firestore.FieldValue.increment(50); }
       dbBatch.update(userRef, updates);
       await dbBatch.commit();
-      setDuration("");
-      setTopic("");
-    } catch (err) {
-      alert("System error :( Failed to commit.");
-    }
+      setDuration(""); setTopic("");
+    } catch (err) { alert("System error :( Failed to commit."); }
     setLoading(false);
   };
 
@@ -246,14 +290,9 @@ const Dashboard = ({ user, userProfile }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await db.collection('users').doc(user.uid).update({
-        displayName: nickname,
-        dailyStudyGoal: Number(goal)
-      });
+      await db.collection('users').doc(user.uid).update({ displayName: nickname, dailyStudyGoal: Number(goal) });
       setShowSettings(false);
-    } catch (err) {
-      alert("System error :( Failed to update.");
-    }
+    } catch (err) { alert("System error :( Failed to update."); }
     setLoading(false);
   };
 
@@ -263,117 +302,160 @@ const Dashboard = ({ user, userProfile }) => {
   const myWeeklyHours = me?.weeklyHours || 0;
   const myDailyGoal = me?.dailyGoal || 2;
 
+  const mkWindowCtrl = (id) => ({
+    windowState: windowStates[id] || 'normal',
+    onMinimize: () => setWindowState(id, 'minimized'),
+    onMaximize: () => setWindowState(id, windowStates[id] === 'maximized' ? 'normal' : 'maximized'),
+    onClose: () => setWindowState(id, 'closed'),
+  });
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-8 w-full max-w-6xl mx-auto relative z-10">
-      {/* LEFT: TRACKER */}
-      <Y2KWindow title="TRACKER.EXE" className="h-[480px]">
-        <div className="flex items-center justify-between border-b pb-3 mb-3" style={{borderColor:'#e0d0f0'}}>
-          <div className="flex items-center gap-3">
-            <img src={userProfile?.photoURL || 'https://via.placeholder.com/50'} alt="PFP" className="w-14 h-14 border-2 rounded-sm" style={{borderColor: '#c0a0e0'}} />
-            <div>
-              <div className="font-bold text-base">{userProfile?.displayName || user.email}</div>
-              <div className="text-xs" style={{color:'#8a7aaa'}}>Crew: {userProfile?.crew || 'Lone Wolf'}
-                {userProfile?.fruit && <span className="fruit-tag">{userProfile.fruit}</span>}
-              </div>
-              <div className="text-xs text-bounty mt-1">
-                Bounty: {calculateBounty(userProfile).toLocaleString()} ฿
+    <div className="p-4 md:p-8 w-full max-w-6xl mx-auto relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* TRACKER WINDOW */}
+        <Y2KWindow title="📝 TRACKER.EXE" {...mkWindowCtrl('tracker')} className={windowStates.tracker === 'maximized' ? 'md:col-span-2' : ''}>
+          <div className="flex items-center justify-between border-b pb-3 mb-3" style={{borderColor:'#e0d0f0'}}>
+            <div className="flex items-center gap-3">
+              <img src={userProfile?.photoURL || 'https://via.placeholder.com/50'} alt="PFP" className="w-14 h-14 border-2 rounded-sm" style={{borderColor: '#c0a0e0'}} />
+              <div>
+                <div className="font-bold text-base">{userProfile?.displayName || user.email}</div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>Crew: {userProfile?.crew || 'Lone Wolf'}
+                  {userProfile?.fruit && <span className="fruit-tag">{userProfile.fruit}</span>}
+                </div>
+                <div className="text-xs text-bounty mt-1">Bounty: {calculateBounty(userProfile).toLocaleString()} ฿</div>
               </div>
             </div>
-          </div>
-          <button onClick={() => setShowSettings(!showSettings)} className="y2k-btn" style={{fontSize:'11px', padding:'2px 8px'}}>
-            {showSettings ? '← Back' : '⚙ Settings'}
-          </button>
-        </div>
-
-        {!showSettings ? (
-          <>
-            <ProgressBar current={myWeeklyHours} goal={myDailyGoal * 7} />
-            <form onSubmit={handleLogHours} className="space-y-3 mt-4">
-              <div>
-                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Date:</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} required className="y2k-input" />
-              </div>
-              <div>
-                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Duration (hrs):</label>
-                <input type="number" step="0.1" value={duration} onChange={e => setDuration(e.target.value)} required placeholder="e.g. 2.5" className="y2k-input" />
-              </div>
-              <div>
-                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Topic:</label>
-                <input type="text" value={topic} onChange={e => setTopic(e.target.value)} required placeholder="Quantum Physics" className="y2k-input" />
-              </div>
-              <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
-                {loading ? "Loading..." : "COMMIT_HOURS()"}
-              </button>
-            </form>
-          </>
-        ) : (
-          <form onSubmit={handleUpdateSettings} className="space-y-3 mt-2">
-             <div className="text-xs" style={{color:'#8a7aaa'}}>Email: {user.email}</div>
-             <div>
-                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Nickname:</label>
-                <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} required className="y2k-input" />
-             </div>
-             <div>
-                <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Daily Goal (hrs):</label>
-                <input type="number" step="0.1" value={goal} onChange={e => setGoal(e.target.value)} required className="y2k-input" />
-             </div>
-             <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
-                {loading ? "Saving..." : "SAVE_SETTINGS()"}
-              </button>
-          </form>
-        )}
-      </Y2KWindow>
-
-      {/* RIGHT: LEADERBOARD */}
-      <Y2KWindow title="LEADERBOARD.DAT" className="h-[480px]">
-        {uniqueCrews.length > 0 && (
-          <div className="flex gap-2 mb-3 pb-2 overflow-x-auto" style={{borderBottom: '1px solid #e0d0f0'}}>
-            <button onClick={() => setLbTab('GLOBAL')} className={`y2k-btn ${lbTab === 'GLOBAL' ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>
-              Global
+            <button onClick={() => setShowSettings(!showSettings)} className="y2k-btn" style={{fontSize:'11px', padding:'2px 8px'}}>
+              {showSettings ? '← Back' : '⚙ Settings'}
             </button>
-            {uniqueCrews.map(c => (
-              <button key={c} onClick={() => setLbTab(c)} className={`y2k-btn ${lbTab === c ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>
-                {c}
-              </button>
-            ))}
           </div>
-        )}
-        <div className="overflow-y-auto" style={{maxHeight: uniqueCrews.length > 0 ? '380px' : '420px'}}>
-          <table className="y2k-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Operative</th>
-                <th className="text-right">Bounty</th>
-                <th className="text-right">% Goal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleLeaderboard.map((u, i) => (
-                <tr key={u.id}>
-                  <td className="font-bold" style={{color:'#8a7aaa'}}>{i + 1}</td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <img src={u.photoURL} className="w-6 h-6 border rounded-sm" style={{borderColor:'#c0b0d8'}} alt="" />
-                      <div>
-                        <span className={user.uid === u.id ? 'font-bold text-vapor-purple' : ''}>
-                          {u.displayName}
-                          {u.fruit && <span className="fruit-tag">{u.fruit}</span>}
-                        </span>
-                        {lbTab === 'GLOBAL' && u.crew && <div className="text-[9px]" style={{color:'#a090c0'}}>[{u.crew}]</div>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="text-right text-bounty">{calculateBounty(u).toLocaleString()} ฿</td>
-                  <td className="text-right font-bold text-vapor-purple" title={`${Number(u.weeklyHours || 0).toFixed(1)} / ${(u.dailyGoal * 7).toFixed(1)} Weekly Hrs`}>
-                    {u.goalPercentage !== undefined ? u.goalPercentage.toFixed(1) : 0}%
-                  </td>
-                </tr>
+
+          {!showSettings ? (
+            <>
+              <ProgressBar current={myWeeklyHours} goal={myDailyGoal * 7} />
+              <form onSubmit={handleLogHours} className="space-y-3 mt-4">
+                <div>
+                  <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Date:</label>
+                  <input type="date" value={date} onChange={e => setDate(e.target.value)} required className="y2k-input" />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Duration (hrs):</label>
+                  <input type="number" step="0.1" value={duration} onChange={e => setDuration(e.target.value)} required placeholder="e.g. 2.5" className="y2k-input" />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Topic:</label>
+                  <input type="text" value={topic} onChange={e => setTopic(e.target.value)} required placeholder="Quantum Physics" className="y2k-input" />
+                </div>
+                <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
+                  {loading ? "Loading..." : "COMMIT_HOURS()"}
+                </button>
+              </form>
+            </>
+          ) : (
+            <form onSubmit={handleUpdateSettings} className="space-y-3 mt-2">
+               <div className="text-xs" style={{color:'#8a7aaa'}}>Email: {user.email}</div>
+               <div>
+                  <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Nickname:</label>
+                  <input type="text" value={nickname} onChange={e => setNickname(e.target.value)} required className="y2k-input" />
+               </div>
+               <div>
+                  <label className="text-xs block mb-1" style={{color:'#8a7aaa'}}>Daily Goal (hrs):</label>
+                  <input type="number" step="0.1" value={goal} onChange={e => setGoal(e.target.value)} required className="y2k-input" />
+               </div>
+               <button type="submit" disabled={loading} className="y2k-btn y2k-btn-primary w-full mt-2">
+                  {loading ? "Saving..." : "SAVE_SETTINGS()"}
+                </button>
+            </form>
+          )}
+        </Y2KWindow>
+
+        {/* LEADERBOARD WINDOW */}
+        <Y2KWindow title="📊 LEADERBOARD.DAT" {...mkWindowCtrl('leaderboard')} className={windowStates.leaderboard === 'maximized' ? 'md:col-span-2' : ''}>
+          {uniqueCrews.length > 0 && (
+            <div className="flex gap-2 mb-3 pb-2 overflow-x-auto" style={{borderBottom: '1px solid #e0d0f0'}}>
+              <button onClick={() => setLbTab('GLOBAL')} className={`y2k-btn ${lbTab === 'GLOBAL' ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>Global</button>
+              {uniqueCrews.map(c => (
+                <button key={c} onClick={() => setLbTab(c)} className={`y2k-btn ${lbTab === c ? 'y2k-btn-primary' : ''}`} style={{fontSize:'10px', padding:'2px 8px'}}>{c}</button>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
+          <div className="overflow-y-auto" style={{maxHeight: '380px'}}>
+            <table className="y2k-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Operative</th>
+                  <th className="text-right">Bounty</th>
+                  <th className="text-right">% Goal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleLeaderboard.map((u, i) => (
+                  <tr key={u.id}>
+                    <td className="font-bold" style={{color:'#8a7aaa'}}>{i + 1}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <img src={u.photoURL} className="w-6 h-6 border rounded-sm" style={{borderColor:'#c0b0d8'}} alt="" />
+                        <div>
+                          <span className={user.uid === u.id ? 'font-bold text-vapor-purple' : ''}>
+                            {u.displayName}
+                            {u.fruit && <span className="fruit-tag">{u.fruit}</span>}
+                          </span>
+                          {lbTab === 'GLOBAL' && u.crew && <div className="text-[9px]" style={{color:'#a090c0'}}>[{u.crew}]</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-right text-bounty">{calculateBounty(u).toLocaleString()} ฿</td>
+                    <td className="text-right font-bold text-vapor-purple" title={`${Number(u.weeklyHours || 0).toFixed(1)} / ${(u.dailyGoal * 7).toFixed(1)} Weekly Hrs`}>
+                      {u.goalPercentage !== undefined ? u.goalPercentage.toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Y2KWindow>
+      </div>
+
+      {/* PROFILE WINDOW (opens from desktop icon) */}
+      {windowStates.profile !== 'closed' && (
+        <div className="mt-6">
+          <Y2KWindow title="👤 My Profile" {...mkWindowCtrl('profile')}>
+            <div className="flex items-center gap-4 mb-4">
+              <img src={userProfile?.photoURL || 'https://via.placeholder.com/80'} className="w-20 h-20 border-2 rounded-sm" style={{borderColor:'#c0a0e0'}} alt="" />
+              <div>
+                <div className="font-bold text-lg">{userProfile?.displayName || user.email}</div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>{user.email}</div>
+                <div className="text-xs mt-1" style={{color:'#8a7aaa'}}>Crew: <strong>{userProfile?.crew || 'Lone Wolf'}</strong></div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>Fruit: <strong>{userProfile?.fruit || 'None'}</strong> {userProfile?.fruit && FRUIT_REGISTRY.find(f=>f.id===userProfile.fruit)?.icon}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-3" style={{border:'1px solid #e0d0f0'}}>
+                <div className="text-2xl font-bold text-bounty">{calculateBounty(userProfile).toLocaleString()}</div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>Bounty ฿</div>
+              </div>
+              <div className="p-3" style={{border:'1px solid #e0d0f0'}}>
+                <div className="text-2xl font-bold" style={{color:'#8060c0'}}>{Number(userProfile?.totalStudyHours || 0).toFixed(1)}</div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>Total Hours</div>
+              </div>
+              <div className="p-3" style={{border:'1px solid #e0d0f0'}}>
+                <div className="text-2xl font-bold" style={{color:'#6080c0'}}>{userProfile?.dailyStudyGoal || 2}</div>
+                <div className="text-xs" style={{color:'#8a7aaa'}}>Daily Goal</div>
+              </div>
+            </div>
+          </Y2KWindow>
         </div>
-      </Y2KWindow>
+      )}
+
+      {/* DEVIL FRUITS WINDOW (opens from desktop icon) */}
+      {windowStates.fruits !== 'closed' && (
+        <div className="mt-6">
+          <Y2KWindow title="🍇 Devil Fruits Encyclopedia" {...mkWindowCtrl('fruits')}>
+            <DevilFruitsWindow userProfile={userProfile} />
+          </Y2KWindow>
+        </div>
+      )}
     </div>
   );
 };
@@ -395,11 +477,8 @@ const AdminPanel = ({ user }) => {
   const handleUpdateField = async (uid, field, newValue, isNumber) => {
     const val = isNumber ? Number(newValue) : newValue;
     if (isNumber && isNaN(val)) return;
-    try {
-      await db.collection('users').doc(uid).update({ [field]: val });
-    } catch(err) {
-      alert("God-Mode Error: " + err.message);
-    }
+    try { await db.collection('users').doc(uid).update({ [field]: val }); }
+    catch(err) { alert("God-Mode Error: " + err.message); }
   };
 
   const handleDeleteUser = async (uid) => {
@@ -450,7 +529,7 @@ const AdminPanel = ({ user }) => {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto relative z-10">
-      <Y2KWindow title="SUDO_ROOT.EXE" danger={true} className="min-h-[500px]">
+      <Y2KWindow title="⚡ SUDO_ROOT.EXE" danger={true} className="min-h-[500px]">
         <h2 className="text-lg mb-4 admin-header font-bold blinking-cursor">⚠ God-Mode Activated</h2>
         <div className="overflow-x-auto">
           <table className="y2k-table">
@@ -477,11 +556,7 @@ const AdminPanel = ({ user }) => {
                       onChange={e => handleUpdateField(u.id, 'fruit', e.target.value === 'NONE' ? null : e.target.value, false)}
                       className="y2k-input mt-1" style={{fontSize:'10px', padding:'2px 4px', color:'#8060c0'}}>
                       <option value="NONE">No Fruit</option>
-                      <option value="GUM-GUM">GUM-GUM</option>
-                      <option value="CHOP-CHOP">CHOP-CHOP</option>
-                      <option value="GLINT-GLINT">GLINT-GLINT</option>
-                      <option value="HUMAN-HUMAN">HUMAN-HUMAN</option>
-                      <option value="SMOOTH-SMOOTH">SMOOTH-SMOOTH</option>
+                      {FRUIT_REGISTRY.map(f => <option key={f.id} value={f.id}>{f.icon} {f.id}</option>)}
                     </select>
                   </td>
                   <td>
@@ -511,7 +586,6 @@ const AdminPanel = ({ user }) => {
         </div>
       </Y2KWindow>
 
-      {/* HISTORY MODAL */}
       {historyModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <Y2KWindow title={`History: ${historyModal.displayName}`} danger={true} className="w-full max-w-2xl max-h-[80vh]">
@@ -519,36 +593,15 @@ const AdminPanel = ({ user }) => {
               <button onClick={closeHistory} className="y2k-btn y2k-btn-danger" style={{fontSize:'11px'}}>✕ Close</button>
             </div>
             <table className="y2k-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Topic</th>
-                  <th>Hrs</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Date</th><th>Topic</th><th>Hrs</th><th>Action</th></tr></thead>
               <tbody>
                 {userSessions.length === 0 ? <tr><td colSpan="4" className="text-center py-4" style={{color:'#a090c0'}}>No data found.</td></tr> : null}
                 {userSessions.map(s => (
                   <tr key={s.id}>
-                    <td>
-                      <input type="date" defaultValue={s.date} 
-                        onBlur={e => handleEditSession(s.id, 'date', e.target.value, s.duration)}
-                        className="y2k-input" style={{fontSize:'11px', width:'120px'}} />
-                    </td>
-                    <td>
-                      <input type="text" defaultValue={s.topic} 
-                        onBlur={e => handleEditSession(s.id, 'topic', e.target.value, s.duration)}
-                        className="y2k-input" style={{fontSize:'11px'}} />
-                    </td>
-                    <td>
-                      <input type="number" step="0.1" defaultValue={s.duration} 
-                        onBlur={e => handleEditSession(s.id, 'duration', e.target.value, s.duration)}
-                        className="y2k-input" style={{fontSize:'11px', width:'50px', textAlign:'right'}} />
-                    </td>
-                    <td>
-                      <button onClick={() => handleDeleteSession(s.id, s.duration)} className="y2k-btn y2k-btn-danger" style={{fontSize:'10px', padding:'1px 6px'}}>✕</button>
-                    </td>
+                    <td><input type="date" defaultValue={s.date} onBlur={e => handleEditSession(s.id, 'date', e.target.value, s.duration)} className="y2k-input" style={{fontSize:'11px', width:'120px'}} /></td>
+                    <td><input type="text" defaultValue={s.topic} onBlur={e => handleEditSession(s.id, 'topic', e.target.value, s.duration)} className="y2k-input" style={{fontSize:'11px'}} /></td>
+                    <td><input type="number" step="0.1" defaultValue={s.duration} onBlur={e => handleEditSession(s.id, 'duration', e.target.value, s.duration)} className="y2k-input" style={{fontSize:'11px', width:'50px', textAlign:'right'}} /></td>
+                    <td><button onClick={() => handleDeleteSession(s.id, s.duration)} className="y2k-btn y2k-btn-danger" style={{fontSize:'10px', padding:'1px 6px'}}>✕</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -569,6 +622,26 @@ function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('TRACKER'); 
+  
+  // Window state management
+  const [windowStates, setWindowStates] = useState({
+    tracker: 'normal',
+    leaderboard: 'normal',
+    profile: 'closed',
+    fruits: 'closed',
+  });
+
+  const setWindowState = useCallback((id, state) => {
+    setWindowStates(prev => ({ ...prev, [id]: state }));
+  }, []);
+
+  const handleDesktopOpen = useCallback((id) => {
+    setWindowStates(prev => ({ ...prev, [id]: 'normal' }));
+  }, []);
+
+  const handleRestoreWindow = useCallback((id) => {
+    setWindowStates(prev => ({ ...prev, [id]: 'normal' }));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -583,12 +656,8 @@ function App() {
               displayName: currentUser.displayName || currentUser.email,
               email: currentUser.email,
               photoURL: currentUser.photoURL || 'https://via.placeholder.com/50',
-              dailyStudyGoal: 2,
-              weeklyStudyGoal: 10,
-              totalStudyHours: 0,
-              crew: null,
-              fruit: null,
-              bountyBase: 10000,
+              dailyStudyGoal: 2, weeklyStudyGoal: 10,
+              totalStudyHours: 0, crew: null, fruit: null, bountyBase: 10000,
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await userRef.set(newProfile);
@@ -596,31 +665,23 @@ function App() {
           } else {
             setUserProfile(docInfo.data());
           }
-          userRef.onSnapshot(doc => {
-            if (doc.exists) setUserProfile(doc.data());
-          });
+          userRef.onSnapshot(doc => { if (doc.exists) setUserProfile(doc.data()); });
         } else {
           setUserProfile(null);
         }
       } catch (err) {
         console.error("Auth error:", err);
         alert("System error :( Database access denied.");
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     });
     return () => unsubscribe();
   }, []);
 
   const handleLogin = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-      await auth.signInWithPopup(provider);
-    } catch(err) {
-      alert("System error :( Connection refused.");
-    }
+    try { await auth.signInWithPopup(provider); }
+    catch(err) { alert("System error :( Connection refused."); }
   };
-
   const handleLogout = () => auth.signOut();
 
   if (loading) {
@@ -630,7 +691,7 @@ function App() {
           <div className="text-center py-4">
             <div className="mb-3">Initializing system...</div>
             <div className="y2k-progress-track">
-              <div className="y2k-progress-fill" style={{width: '60%', animation: 'none'}}></div>
+              <div className="y2k-progress-fill" style={{width: '60%'}}></div>
             </div>
           </div>
         </Y2KWindow>
@@ -641,18 +702,17 @@ function App() {
   return (
     <div className="min-h-screen pb-12 relative">
       <SparkleBackground />
-      <DesktopIcons />
+      {user && <DesktopIcons onOpen={handleDesktopOpen} />}
       <Taskbar user={user} onLogout={handleLogout} isAdmin={user?.email === ADMIN_EMAIL} view={view}
-        onToggleAdmin={() => setView(view === 'ADMIN' ? 'TRACKER' : 'ADMIN')} />
+        onToggleAdmin={() => setView(view === 'ADMIN' ? 'TRACKER' : 'ADMIN')}
+        windowStates={windowStates} onRestoreWindow={handleRestoreWindow} />
 
-      {/* HEADER */}
       <header className="max-w-6xl mx-auto px-4 md:px-8 pt-6 pb-4 flex items-center justify-center relative z-10">
         <div className="text-2xl font-bold tracking-widest" style={{color:'#4a3a6a'}}>
           ☆ STUDY_NET ~ V2.0 ☆
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
       {!user ? (
         <div className="flex items-center justify-center mt-16 relative z-10">
           <Y2KWindow title="Welcome!" className="w-[380px]">
@@ -670,7 +730,7 @@ function App() {
         view === 'ADMIN' && user.email === ADMIN_EMAIL ? (
           <AdminPanel user={user} />
         ) : (
-          <Dashboard user={user} userProfile={userProfile} />
+          <Dashboard user={user} userProfile={userProfile} windowStates={windowStates} setWindowState={setWindowState} />
         )
       )}
     </div>
