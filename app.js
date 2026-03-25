@@ -186,11 +186,12 @@ const Taskbar = ({ user, onLogout, onToggleAdmin, isAdmin, view, windowStates, o
 // PROGRESS BAR (Y2K Loading Style)
 // ---------------------------------------------------------
 const ProgressBar = ({ current, goal }) => {
-  const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  const safeCurrent = Math.max(0, Number(current) || 0);
+  const percentage = goal > 0 ? Math.min((safeCurrent / goal) * 100, 100) : 0;
   return (
     <div className="my-3">
       <div className="flex justify-between text-xs mb-1" style={{color:'#6a6a8a'}}>
-        <span>Weekly Progress: {Number(current).toFixed(1)} / {goal.toFixed(1)} hrs</span>
+        <span>Weekly Progress: {safeCurrent.toFixed(1)} / {goal.toFixed(1)} hrs</span>
         <span>{percentage.toFixed(1)}%</span>
       </div>
       <div className="y2k-progress-track">
@@ -211,7 +212,7 @@ const calculateBounty = (u) => {
   }
   const base = u.bountyBase !== undefined ? Number(u.bountyBase) : 10000;
   const dailyGoal = u.dailyStudyGoal > 0 ? Number(u.dailyStudyGoal) : (u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) / 7 : 2);
-  const total = Number(u.totalStudyHours || 0);
+  const total = Math.max(0, Number(u.totalStudyHours || 0));
   const percentageCompleted = total / dailyGoal;
   let bountyAdd = 0;
   if (u.fruit === 'GUM-GUM') {
@@ -265,8 +266,8 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
     rawSessions.forEach(s => { weeklyTotals[s.userId] = (weeklyTotals[s.userId] || 0) + s.duration; });
     const users = rawUsers.map(data => {
       const dailyGoal = data.dailyStudyGoal > 0 ? data.dailyStudyGoal : (data.weeklyStudyGoal ? data.weeklyStudyGoal / 7 : 2);
-      const wHours = weeklyTotals[data.id] || 0;
-      return { ...data, dailyGoal, weeklyHours: wHours, goalPercentage: (wHours / (dailyGoal * 7)) * 100 };
+      const wHours = Math.max(0, weeklyTotals[data.id] || 0);
+      return { ...data, dailyGoal, weeklyHours: wHours, goalPercentage: Math.max(0, (wHours / (dailyGoal * 7)) * 100) };
     });
     users.sort((a,b) => b.goalPercentage - a.goalPercentage);
     setLeaderboard(users);
@@ -451,7 +452,7 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
                 <div className="text-xs" style={{color:'#8a7aaa'}}>Bounty ฿</div>
               </div>
               <div className="p-3" style={{border:'1px solid #e0d0f0'}}>
-                <div className="text-2xl font-bold" style={{color:'#8060c0'}}>{Number(userProfile?.totalStudyHours || 0).toFixed(1)}</div>
+                <div className="text-2xl font-bold" style={{color:'#8060c0'}}>{Math.max(0, Number(userProfile?.totalStudyHours || 0)).toFixed(1)}</div>
                 <div className="text-xs" style={{color:'#8a7aaa'}}>Total Hours</div>
               </div>
               <div className="p-3" style={{border:'1px solid #e0d0f0'}}>
