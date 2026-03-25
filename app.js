@@ -215,12 +215,17 @@ const calculateBounty = (u) => {
   const total = Math.max(0, Number(u.totalStudyHours || 0));
   const percentageCompleted = total / dailyGoal;
   let bountyAdd = 0;
-  if (u.fruit === 'GUM-GUM') {
-    bountyAdd = Math.floor(percentageCompleted * 10) * 600;
-  } else if (u.fruit === 'CHOP-CHOP') {
-    bountyAdd = Math.floor(percentageCompleted * 20) * 250;
+  // Weakling Trio: halved rewards
+  const debuffMultiplier = u.weakling_debuff ? 0.5 : 1;
+  // Sea Prism Stone: disabled fruit
+  const fruitActive = u.fruit_power_active !== false; 
+  
+  if (u.fruit === 'GUM-GUM' && fruitActive) {
+    bountyAdd = Math.floor(percentageCompleted * 10) * (600 * debuffMultiplier);
+  } else if (u.fruit === 'CHOP-CHOP' && fruitActive) {
+    bountyAdd = Math.floor(percentageCompleted * 20) * (250 * debuffMultiplier);
   } else {
-    bountyAdd = Math.floor(percentageCompleted * 10) * 500;
+    bountyAdd = Math.floor(percentageCompleted * 10) * (500 * debuffMultiplier);
   }
   let finalBounty = base + bountyAdd;
   // SMOOTH-SMOOTH: bounty can never decrease — use stored maxBounty
@@ -253,10 +258,9 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
   useEffect(() => {
     const unsubU = db.collection('users').onSnapshot(snap => setRawUsers(snap.docs.map(d => ({id:d.id, ...d.data()}))));
     const today = new Date();
-    const day = today.getDay() || 7; 
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - day + 1);
-    const startOfWeekStr = monday.toISOString().split('T')[0];
+    const rollingStart = new Date(today);
+    rollingStart.setDate(today.getDate() - 7);
+    const startOfWeekStr = rollingStart.toISOString().split('T')[0];
     const unsubS = db.collection('studySessions').where('date', '>=', startOfWeekStr).onSnapshot(snap => setRawSessions(snap.docs.map(d => d.data())));
     return () => { unsubU(); unsubS(); };
   }, []);
@@ -273,12 +277,75 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
     setLeaderboard(users);
   }, [rawUsers, rawSessions]);
 
+  // The Daily Sync (Penalties Evaluation)
+  useEffect(() => {
+    if (!me || !leaderboard.length || !rawSessions.length) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (me.lastSyncDate === todayStr) return; 
+
+    const runDailySync = async () => {
+      let updates = { lastSyncDate: todayStr };
+      let needsUpdate = true;
+
+      // 1. Wanted Poster Vandalism: Update rank state
+      const myCurrentRank = leaderboard.findIndex(u => u.id === me.id) + 1;
+      updates.previousRank = myCurrentRank;
+
+      // 2. Weakling Trio: 5 days in bottom 3
+      const isBottom3 = myCurrentRank >= Math.max(1, leaderboard.length - 2);
+      let newRankHistory = [...(me.rankHistory || [])];
+      newRankHistory.push(isBottom3 ? 'bottom' : 'safe');
+      if (newRankHistory.length > 5) newRankHistory.shift();
+      const weakling = newRankHistory.length === 5 && newRankHistory.every(s => s === 'bottom');
+      if (me.weakling_debuff !== weakling) {
+        updates.weakling_debuff = weakling;
+      }
+      updates.rankHistory = newRankHistory;
+
+      // 3. Sea Prism Stone: inactive for 2 full days
+      const mySessions = rawSessions.filter(s => s.userId === me.id).sort((a,b) => new Date(b.date) - new Date(a.date));
+      if (mySessions.length > 0) {
+        const lastDate = new Date(mySessions[0].date);
+        const todayDate = new Date(todayStr);
+        const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 2 && me.fruit_power_active !== false) {
+          updates.fruit_power_active = false;
+          updates.bountyBase = firebase.firestore.FieldValue.increment(-100);
+        } else if (diffDays < 2 && me.fruit_power_active === false) {
+          updates.fruit_power_active = true; // restore if active again
+        }
+      }
+
+      // 4. Buster Call (Crew Penalty)
+      // Check if my crew failed. If 3+ members failed 10% milestone in last 7 days.
+      if (me.crew && me.lastBusterCallDate !== todayStr) {
+        const myCrewMembers = leaderboard.filter(u => u.crew === me.crew);
+        const failedMembers = myCrewMembers.filter(u => {
+          const minTracker = (u.dailyGoal * 7) * 0.10;
+          return u.weeklyHours < minTracker;
+        });
+        if (failedMembers.length >= 3) {
+          // Trigger buster call deduction for me
+          updates.bountyBase = updates.bountyBase 
+            ? firebase.firestore.FieldValue.increment(-350) // -100 from sea prism + -250 from buster
+            : firebase.firestore.FieldValue.increment(-250);
+        }
+        updates.lastBusterCallDate = todayStr;
+      }
+
+      await db.collection('users').doc(me.id).update(updates);
+    };
+    runDailySync();
+  }, [me?.id, leaderboard.length, rawSessions.length]);
+
   const handleLogHours = async (e) => {
     e.preventDefault();
     if (!duration || isNaN(duration) || Number(duration) <= 0 || !topic) return;
     setLoading(true);
     let numDuration = Number(duration);
-    if (userProfile?.fruit === 'GLINT-GLINT') { numDuration = numDuration * 1.1; }
+    if (userProfile?.fruit === 'GLINT-GLINT' && userProfile?.fruit_power_active !== false) { 
+      numDuration = numDuration * 1.1; 
+    }
     try {
       const dbBatch = db.batch();
       const newSessionRef = db.collection('studySessions').doc();
@@ -412,11 +479,12 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
                     <td className="font-bold" style={{color:'#8a7aaa'}}>{i + 1}</td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <img src={u.photoURL} className="w-6 h-6 border rounded-sm" style={{borderColor:'#c0b0d8'}} alt="" />
+                        <img src={u.photoURL} className={`w-6 h-6 border rounded-sm ${u.previousRank && (i + 1) > u.previousRank ? 'vandalized-poster' : ''}`} style={{borderColor:'#c0b0d8'}} alt="" />
                         <div>
-                          <span className={user.uid === u.id ? 'font-bold text-vapor-purple' : ''}>
+                          <span className={`${user.uid === u.id ? 'font-bold text-vapor-purple' : ''} ${u.weakling_debuff ? 'opacity-70 line-through' : ''}`}>
                             {u.displayName}
-                            {u.fruit && <span className="fruit-tag">{u.fruit}</span>}
+                            {u.fruit && u.fruit_power_active !== false && <span className="fruit-tag">{u.fruit}</span>}
+                            {u.fruit_power_active === false && <span className="fruit-tag bg-gray-400 text-white line-through" title="Sea Prism Stone Penalty">SEALED</span>}
                           </span>
                           {lbTab === 'GLOBAL' && u.crew && <div className="text-[9px]" style={{color:'#a090c0'}}>[{u.crew}]</div>}
                         </div>
