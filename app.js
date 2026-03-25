@@ -445,9 +445,16 @@ const AdminPanel = ({ user }) => {
                     <input type="text" defaultValue={u.crew || ''} placeholder="Assign Crew"
                       onBlur={e => handleUpdateField(u.id, 'crew', e.target.value.trim().toUpperCase(), false)}
                       className="bg-transparent border-b border-red-500/50 w-full text-[10px] text-red-400 focus:border-red-500 mb-1" />
-                    <input type="text" defaultValue={u.fruit || ''} placeholder="Assign Fruit"
-                      onBlur={e => handleUpdateField(u.id, 'fruit', e.target.value.trim().toUpperCase(), false)}
-                      className="bg-transparent border-b border-purple-500/50 w-full text-[10px] text-purple-400 focus:border-purple-500" />
+                    <select defaultValue={u.fruit || 'NONE'} 
+                      onChange={e => handleUpdateField(u.id, 'fruit', e.target.value === 'NONE' ? null : e.target.value, false)}
+                      className="bg-transparent border-b border-purple-500/50 w-full text-[10px] text-purple-400 focus:border-purple-500 bg-terminal-dark">
+                      <option value="NONE">NO FRUIT</option>
+                      <option value="GUM-GUM">GUM-GUM</option>
+                      <option value="CHOP-CHOP">CHOP-CHOP</option>
+                      <option value="GLINT-GLINT">GLINT-GLINT</option>
+                      <option value="HUMAN-HUMAN">HUMAN-HUMAN</option>
+                      <option value="SMOOTH-SMOOTH">SMOOTH-SMOOTH</option>
+                    </select>
                   </td>
                   <td>
                     <input type="number" step="0.1" defaultValue={u.dailyStudyGoal !== undefined ? u.dailyStudyGoal : (u.weeklyStudyGoal ? u.weeklyStudyGoal / 7 : 2)} 
