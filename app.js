@@ -146,9 +146,11 @@ const Dashboard = ({ user, userProfile }) => {
     setLoading(false);
   };
 
+  const uniqueCrews = Array.from(new Set(leaderboard.map(u => u.crew).filter(Boolean)));
+
   const visibleLeaderboard = lbTab === 'GLOBAL' 
     ? leaderboard 
-    : leaderboard.filter(u => u.crew && u.crew === userProfile?.crew);
+    : leaderboard.filter(u => u.crew === lbTab);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-8 w-full max-w-7xl mx-auto">
@@ -217,18 +219,21 @@ const Dashboard = ({ user, userProfile }) => {
 
       <div className="space-y-6">
         <TerminalWindow title="LEADERBOARD.DAT" className="h-[450px]">
-          {userProfile?.crew && (
-            <div className="flex space-x-4 mb-4 border-b border-neon-green/30 pb-2">
+          {uniqueCrews.length > 0 && (
+            <div className="flex space-x-4 mb-4 border-b border-neon-green/30 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
               <button 
                 onClick={() => setLbTab('GLOBAL')} 
-                className={`text-sm ${lbTab === 'GLOBAL' ? 'text-white' : 'text-neon-green/50 hover:text-neon-green'}`}>
+                className={`text-sm ${lbTab === 'GLOBAL' ? 'text-white font-bold' : 'text-neon-green/50 hover:text-neon-green'}`}>
                 [GLOBAL]
               </button>
-              <button 
-                onClick={() => setLbTab('CREW')} 
-                className={`text-sm ${lbTab === 'CREW' ? 'text-white' : 'text-neon-green/50 hover:text-neon-green'}`}>
-                [CREW: {userProfile.crew}]
-              </button>
+              {uniqueCrews.map(c => (
+                <button 
+                  key={c}
+                  onClick={() => setLbTab(c)} 
+                  className={`text-sm ${lbTab === c ? 'text-white font-bold' : 'text-neon-green/50 hover:text-neon-green'}`}>
+                  [CREW: {c}]
+                </button>
+              ))}
             </div>
           )}
           <div className="overflow-y-auto max-h-[350px]">
