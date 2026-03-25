@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COMPETITIVE STUDY TRACKER</title>
+  <title>STUDY_NET ~ Y2K</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -11,13 +11,19 @@
       theme: {
         extend: {
           colors: {
-            'neon-green': '#39ff14',
-            'terminal-bg': '#040b14',
-            'terminal-gray': '#a3b8cc',
-            'terminal-dark': '#0a192f',
+            'vapor-bg': '#a8c4f0',
+            'vapor-pink': '#f0b0d8',
+            'vapor-purple': '#c0a0e0',
+            'vapor-blue': '#a0c0f0',
+            'vapor-teal': '#a0d8d0',
+            'vapor-white': '#ffffff',
+            'vapor-text': '#2a2a3d',
+            'vapor-muted': '#6a6a8a',
+            'vapor-titlebar': '#d8b0e8',
+            'vapor-border': '#a0a0b8',
           },
           fontFamily: {
-            mono: ['"VT323"', 'monospace'],
+            retro: ['"DotGothic16"', '"VT323"', 'monospace'],
           }
         }
       }
@@ -27,7 +33,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 
@@ -38,13 +44,13 @@
   <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- Firebase Compat (Required for easy non-module browser usage) -->
+  <!-- Firebase Compat -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
 
 </head>
-<body class="bg-terminal-bg text-neon-green font-mono min-h-screen relative">
+<body class="bg-vapor-bg text-vapor-text font-retro min-h-screen relative pb-12">
   <div id="root"></div>
 
   <!-- Main App Code -->
