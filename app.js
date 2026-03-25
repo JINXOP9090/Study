@@ -4,14 +4,13 @@ const { useState, useEffect, useMemo } = React;
 // FIREBASE CONFIGURATION
 // ---------------------------------------------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyDm4Hx8Lu2gihDKbTMilUu4oB2Ih1ZId2g",
-  authDomain: "ariarohiatre.firebaseapp.com",
-  databaseURL: "https://ariarohiatre-default-rtdb.firebaseio.com",
-  projectId: "ariarohiatre",
-  storageBucket: "ariarohiatre.firebasestorage.app",
-  messagingSenderId: "881880075109",
-  appId: "1:881880075109:web:ec779dbb804c8b01616f8c",
-  measurementId: "G-V5TZZ9Y5P0"
+  apiKey: "AIzaSyAb3q5B_U3aOIF1Jeq4gB3ScvhYFN2nCOM",
+  authDomain: "studyapp-576cb.firebaseapp.com",
+  projectId: "studyapp-576cb",
+  storageBucket: "studyapp-576cb.firebasestorage.app",
+  messagingSenderId: "234636995140",
+  appId: "1:234636995140:web:b078b53d44bdfb09acea11",
+  measurementId: "G-EYLJ4RVKEK"
 };
 
 if (!firebase.apps.length) {
@@ -276,36 +275,42 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        // Initialize or fetch user profile
-        const userRef = db.collection('users').doc(currentUser.uid);
-        const docInfo = await userRef.get();
-        if (!docInfo.exists) {
-          // New User Setup
-          const newProfile = {
-            uid: currentUser.uid,
-            displayName: currentUser.displayName,
-            email: currentUser.email,
-            photoURL: currentUser.photoURL,
-            weeklyStudyGoal: 10,
-            totalStudyHours: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          };
-          await userRef.set(newProfile);
-          setUserProfile(newProfile);
+      try {
+        setUser(currentUser);
+        if (currentUser) {
+          // Initialize or fetch user profile
+          const userRef = db.collection('users').doc(currentUser.uid);
+          const docInfo = await userRef.get();
+          if (!docInfo.exists) {
+            // New User Setup
+            const newProfile = {
+              uid: currentUser.uid,
+              displayName: currentUser.displayName || currentUser.email,
+              email: currentUser.email,
+              photoURL: currentUser.photoURL || 'https://via.placeholder.com/50',
+              weeklyStudyGoal: 10,
+              totalStudyHours: 0,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await userRef.set(newProfile);
+            setUserProfile(newProfile);
+          } else {
+            setUserProfile(docInfo.data());
+          }
+          
+          // Listen to profile changes
+          userRef.onSnapshot(doc => {
+            if (doc.exists) setUserProfile(doc.data());
+          });
         } else {
-          setUserProfile(docInfo.data());
+          setUserProfile(null);
         }
-        
-        // Listen to profile changes
-        userRef.onSnapshot(doc => {
-          if (doc.exists) setUserProfile(doc.data());
-        });
-      } else {
-        setUserProfile(null);
+      } catch (err) {
+        console.error("Auth state error:", err);
+        alert("SYSTEM ERROR: Database access denied or unavailable. Please ensure your Firestore Database is created and rules are set.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
