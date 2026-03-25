@@ -441,6 +441,28 @@ body::before {
   margin-left: 4px;
 }
 
+/* ---- WANTED POSTER VANDALISM ---- */
+.vandalized-poster {
+  position: relative;
+  filter: grayscale(80%) sepia(20%) contrast(1.2);
+  border-color: #8b0000 !important;
+}
+
+.vandalized-poster::after {
+  content: 'LOSER';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  color: #ff0000;
+  font-family: 'Brush Script MT', cursive, sans-serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  opacity: 0.8;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
 /* ---- MISC HELPERS ---- */
 .text-vapor-pink { color: #e060a0; }
 .text-vapor-purple { color: #8060c0; }
