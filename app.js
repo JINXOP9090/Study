@@ -205,6 +205,10 @@ const ProgressBar = ({ current, goal }) => {
 // ---------------------------------------------------------
 const calculateBounty = (u) => {
   if (!u) return 10000;
+  // Admin bounty override takes precedence over everything
+  if (u.bountyOverride !== undefined && u.bountyOverride !== null) {
+    return Number(u.bountyOverride);
+  }
   const base = u.bountyBase !== undefined ? Number(u.bountyBase) : 10000;
   const dailyGoal = u.dailyStudyGoal > 0 ? Number(u.dailyStudyGoal) : (u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) / 7 : 2);
   const total = Number(u.totalStudyHours || 0);
@@ -218,8 +222,10 @@ const calculateBounty = (u) => {
     bountyAdd = Math.floor(percentageCompleted * 10) * 500;
   }
   let finalBounty = base + bountyAdd;
+  // SMOOTH-SMOOTH: bounty can never decrease — use stored maxBounty
   if (u.fruit === 'SMOOTH-SMOOTH') {
-    finalBounty = Math.max(base, finalBounty);
+    const storedMax = Number(u.maxBounty || 0);
+    finalBounty = Math.max(storedMax, finalBounty);
   }
   return finalBounty;
 };
@@ -281,6 +287,16 @@ const Dashboard = ({ user, userProfile, windowStates, setWindowState }) => {
       if (userProfile?.fruit === 'HUMAN-HUMAN') { updates.bountyBase = firebase.firestore.FieldValue.increment(50); }
       dbBatch.update(userRef, updates);
       await dbBatch.commit();
+      // After commit, update maxBounty for SMOOTH-SMOOTH users
+      if (userProfile?.fruit === 'SMOOTH-SMOOTH') {
+        const freshDoc = await userRef.get();
+        const freshData = freshDoc.data();
+        const computedBounty = calculateBounty({ ...freshData, bountyOverride: null });
+        const storedMax = Number(freshData.maxBounty || 0);
+        if (computedBounty > storedMax) {
+          await userRef.update({ maxBounty: computedBounty });
+        }
+      }
       setDuration(""); setTopic("");
     } catch (err) { alert("System error :( Failed to commit."); }
     setLoading(false);
@@ -540,6 +556,7 @@ const AdminPanel = ({ user }) => {
                 <th>Daily(H)</th>
                 <th>Total(H)</th>
                 <th>Base Bounty</th>
+                <th>Bounty Override</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -574,6 +591,24 @@ const AdminPanel = ({ user }) => {
                       onBlur={e => handleUpdateField(u.id, 'bountyBase', e.target.value, true)}
                       title={`Computed: ${calculateBounty(u).toLocaleString()} ฿`}
                       className="y2k-input" style={{width:'70px', textAlign:'center', fontSize:'12px', color:'#c08020'}} />
+                  </td>
+                  <td>
+                    <input type="number" step="500" 
+                      defaultValue={u.bountyOverride !== undefined && u.bountyOverride !== null ? u.bountyOverride : ''}
+                      placeholder={calculateBounty({...u, bountyOverride: null}).toLocaleString()}
+                      onBlur={e => {
+                        const val = e.target.value.trim();
+                        if (val === '') {
+                          handleUpdateField(u.id, 'bountyOverride', null, false);
+                        } else {
+                          handleUpdateField(u.id, 'bountyOverride', val, true);
+                        }
+                      }}
+                      title="Set override (empty = use computed)"
+                      className="y2k-input" style={{width:'80px', textAlign:'center', fontSize:'12px', color:'#e06020'}} />
+                    <div className="text-[9px] mt-1" style={{color:'#a090c0'}}>
+                      Show: {calculateBounty(u).toLocaleString()} ฿
+                    </div>
                   </td>
                   <td className="space-x-1 whitespace-nowrap">
                     <button onClick={() => openHistory(u)} className="y2k-btn" style={{fontSize:'10px', padding:'2px 6px'}}>History</button>
