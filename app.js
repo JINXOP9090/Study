@@ -58,7 +58,7 @@ const AsciiProgressBar = ({ current, goal }) => {
   
   return (
     <div className="font-mono mt-2">
-      <div>PROGRESS: {Number(current).toFixed(1)} / {goal} HOURS ({percentage.toFixed(1)}%)</div>
+      <div>WEEKLY PROGRESS: {Number(current).toFixed(1)} / {goal.toFixed(1)} HOURS ({percentage.toFixed(1)}%)</div>
       <div className="text-xl tracking-[0.2em] text-green-400">{bar}</div>
     </div>
   );
@@ -67,10 +67,28 @@ const AsciiProgressBar = ({ current, goal }) => {
 const calculateBounty = (u) => {
   if (!u) return 10000;
   const base = u.bountyBase !== undefined ? Number(u.bountyBase) : 10000;
-  const goal = u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) : 10;
+  const dailyGoal = u.dailyStudyGoal > 0 ? Number(u.dailyStudyGoal) : (u.weeklyStudyGoal > 0 ? Number(u.weeklyStudyGoal) / 7 : 2);
   const total = Number(u.totalStudyHours || 0);
-  const increments = Math.floor((total / goal) * 10);
-  return base + (increments * 500);
+  
+  const percentageCompleted = total / dailyGoal; // 1.0 = 100%
+  let bountyAdd = 0;
+  
+  if (u.fruit === 'GUM-GUM') {
+    bountyAdd = Math.floor(percentageCompleted * 10) * 600;
+  } else if (u.fruit === 'CHOP-CHOP') {
+    bountyAdd = Math.floor(percentageCompleted * 20) * 250;
+  } else {
+    // STANDARD / DEFAULT
+    bountyAdd = Math.floor(percentageCompleted * 10) * 500;
+  }
+  
+  // 5. Smooth-Smooth Fruit: Hardcoded Protection flag guarantees bounty never slips below base.
+  let finalBounty = base + bountyAdd;
+  if (u.fruit === 'SMOOTH-SMOOTH') {
+    finalBounty = Math.max(base, finalBounty); // Protection logic placeholder
+  }
+  
+  return finalBounty;
 };
 
 // ---------------------------------------------------------
@@ -80,33 +98,65 @@ const Dashboard = ({ user, userProfile }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [duration, setDuration] = useState("");
   const [topic, setTopic] = useState("");
-  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  const [rawUsers, setRawUsers] = useState([]);
+  const [rawSessions, setRawSessions] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
   
   // Settings Mode
   const [showSettings, setShowSettings] = useState(false);
   const [nickname, setNickname] = useState(userProfile?.displayName || "");
-  const [goal, setGoal] = useState(userProfile?.weeklyStudyGoal || 10);
+  const [goal, setGoal] = useState(userProfile?.dailyStudyGoal || (userProfile?.weeklyStudyGoal ? userProfile.weeklyStudyGoal / 7 : 2));
   
   // Leaderboard Tab
   const [lbTab, setLbTab] = useState('GLOBAL');
 
-  // Fetch Leaderboard
   useEffect(() => {
-    const unsubscribe = db.collection('users')
-      .orderBy('totalStudyHours', 'desc')
-      .onSnapshot((snapshot) => {
-        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setLeaderboard(users);
-      });
-    return () => unsubscribe();
+    const unsubU = db.collection('users').onSnapshot(snap => setRawUsers(snap.docs.map(d => ({id:d.id, ...d.data()}))));
+    
+    // Calculate start of the week (Monday)
+    const today = new Date();
+    const day = today.getDay() || 7; 
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - day + 1);
+    const startOfWeekStr = monday.toISOString().split('T')[0];
+
+    const unsubS = db.collection('studySessions').where('date', '>=', startOfWeekStr).onSnapshot(snap => setRawSessions(snap.docs.map(d => d.data())));
+
+    return () => { unsubU(); unsubS(); };
   }, []);
+
+  useEffect(() => {
+    const weeklyTotals = {};
+    rawSessions.forEach(s => {
+      weeklyTotals[s.userId] = (weeklyTotals[s.userId] || 0) + s.duration;
+    });
+
+    const users = rawUsers.map(data => {
+      const dailyGoal = data.dailyStudyGoal > 0 ? data.dailyStudyGoal : (data.weeklyStudyGoal ? data.weeklyStudyGoal / 7 : 2);
+      const wHours = weeklyTotals[data.id] || 0;
+      return { 
+         ...data, 
+         dailyGoal,
+         weeklyHours: wHours, 
+         goalPercentage: (wHours / (dailyGoal * 7)) * 100 
+      };
+    });
+    users.sort((a,b) => b.goalPercentage - a.goalPercentage);
+    setLeaderboard(users);
+  }, [rawUsers, rawSessions]);
 
   const handleLogHours = async (e) => {
     e.preventDefault();
     if (!duration || isNaN(duration) || Number(duration) <= 0 || !topic) return;
     setLoading(true);
-    const numDuration = Number(duration);
+    let numDuration = Number(duration);
+    
+    // 3. Glint-Glint Fruit: 1.1x Multiplier applied purely to the logged session mathematically
+    if (userProfile?.fruit === 'GLINT-GLINT') {
+      numDuration = numDuration * 1.1;
+    }
     
     try {
       const dbBatch = db.batch();
@@ -118,10 +168,18 @@ const Dashboard = ({ user, userProfile }) => {
         topic,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      
       const userRef = db.collection('users').doc(user.uid);
-      dbBatch.update(userRef, {
+      const updates = {
         totalStudyHours: firebase.firestore.FieldValue.increment(numDuration)
-      });
+      };
+      
+      // 4. Human-Human Fruit: Flat +50 Bounty Base increase upon every successful commit!
+      if (userProfile?.fruit === 'HUMAN-HUMAN') {
+        updates.bountyBase = firebase.firestore.FieldValue.increment(50);
+      }
+      
+      dbBatch.update(userRef, updates);
       await dbBatch.commit();
       setDuration("");
       setTopic("");
@@ -137,7 +195,7 @@ const Dashboard = ({ user, userProfile }) => {
     try {
       await db.collection('users').doc(user.uid).update({
         displayName: nickname,
-        weeklyStudyGoal: Number(goal)
+        dailyStudyGoal: Number(goal)
       });
       setShowSettings(false);
     } catch (err) {
@@ -147,10 +205,14 @@ const Dashboard = ({ user, userProfile }) => {
   };
 
   const uniqueCrews = Array.from(new Set(leaderboard.map(u => u.crew).filter(Boolean)));
-
   const visibleLeaderboard = lbTab === 'GLOBAL' 
     ? leaderboard 
     : leaderboard.filter(u => u.crew === lbTab);
+
+  // Derive current user's weekly target from leaderboard array if possible
+  const me = leaderboard.find(u => u.id === user.uid);
+  const myWeeklyHours = me?.weeklyHours || 0;
+  const myDailyGoal = me?.dailyGoal || 2;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-8 w-full max-w-7xl mx-auto">
@@ -174,7 +236,7 @@ const Dashboard = ({ user, userProfile }) => {
 
           {!showSettings ? (
             <>
-              <AsciiProgressBar current={userProfile?.totalStudyHours || 0} goal={userProfile?.weeklyStudyGoal || 10} />
+              <AsciiProgressBar current={myWeeklyHours} goal={myDailyGoal * 7} />
               <form onSubmit={handleLogHours} className="mt-8 space-y-4">
                 <div className="flex items-center">
                   <span className="mr-2 text-neon-green">{"> "}DATE:</span>
@@ -205,8 +267,8 @@ const Dashboard = ({ user, userProfile }) => {
                     className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase" />
                </div>
                <div className="flex items-center">
-                  <span className="mr-2 text-neon-green">{"> "}WEEKLY_GOAL:</span>
-                  <input type="number" step="1" value={goal} onChange={e => setGoal(e.target.value)} required
+                  <span className="mr-2 text-neon-green">{"> "}DAILY_GOAL(HRS):</span>
+                  <input type="number" step="0.1" value={goal} onChange={e => setGoal(e.target.value)} required
                     className="bg-transparent border-b border-neon-green/50 text-neon-green focus:border-neon-green flex-grow uppercase" />
                </div>
                <button type="submit" disabled={loading} className="mt-4 w-full border-2 border-neon-green py-2 hover:bg-neon-green hover:text-black transition-colors font-bold tracking-widest uppercase">
@@ -243,7 +305,7 @@ const Dashboard = ({ user, userProfile }) => {
                   <th className="py-2">RNK</th>
                   <th className="py-2">OPERATIVE</th>
                   <th className="py-2 text-right">BOUNTY</th>
-                  <th className="py-2 text-right">HOURS</th>
+                  <th className="py-2 text-right">% GOAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -253,12 +315,16 @@ const Dashboard = ({ user, userProfile }) => {
                     <td className="py-3 flex items-center space-x-2">
                       <img src={u.photoURL} className="w-6 h-6 inline border border-neon-green/50 rounded-sm" alt="" />
                       <div className="flex flex-col">
-                        <span className={user.uid === u.id ? 'glow-text text-white' : ''}>{u.displayName}</span>
+                        <span className={user.uid === u.id ? 'glow-text text-white' : ''}>
+                          {u.displayName} {u.fruit && <span className="text-[10px] text-purple-400 font-bold ml-1">[{u.fruit}]</span>}
+                        </span>
                         {lbTab === 'GLOBAL' && u.crew && <span className="text-[10px] opacity-60">[{u.crew}]</span>}
                       </div>
                     </td>
                     <td className="py-3 text-right font-bold text-yellow-400">{calculateBounty(u).toLocaleString()} ฿</td>
-                    <td className="py-3 text-right font-bold tracking-widest text-[#39ff14]">{Number(u.totalStudyHours || 0).toFixed(1)}</td>
+                    <td className="py-3 text-right font-bold tracking-widest text-[#39ff14]" title={`${Number(u.weeklyHours || 0).toFixed(1)} / ${(u.dailyGoal * 7).toFixed(1)} Weekly Hrs`}>
+                      {u.goalPercentage !== undefined ? u.goalPercentage.toFixed(1) : 0}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -363,8 +429,8 @@ const AdminPanel = ({ user }) => {
             <thead>
               <tr className="border-b border-red-500 text-red-500">
                 <th className="py-2">EMAIL</th>
-                <th>NAME/CREW</th>
-                <th>GOAL(H)</th>
+                <th>NAME/CREW/FRUIT</th>
+                <th>DAILY(H)</th>
                 <th>TOTAL(H)</th>
                 <th>BASE_BOUNTY</th>
                 <th>ACTIONS</th>
@@ -378,15 +444,18 @@ const AdminPanel = ({ user }) => {
                     <div className="truncate max-w-[100px]">{u.displayName}</div>
                     <input type="text" defaultValue={u.crew || ''} placeholder="Assign Crew"
                       onBlur={e => handleUpdateField(u.id, 'crew', e.target.value.trim().toUpperCase(), false)}
-                      className="bg-transparent border-b border-red-500/50 w-24 text-[10px] text-red-400 focus:border-red-500" />
+                      className="bg-transparent border-b border-red-500/50 w-full text-[10px] text-red-400 focus:border-red-500 mb-1" />
+                    <input type="text" defaultValue={u.fruit || ''} placeholder="Assign Fruit"
+                      onBlur={e => handleUpdateField(u.id, 'fruit', e.target.value.trim().toUpperCase(), false)}
+                      className="bg-transparent border-b border-purple-500/50 w-full text-[10px] text-purple-400 focus:border-purple-500" />
                   </td>
                   <td>
-                    <input type="number" defaultValue={u.weeklyStudyGoal} 
-                      onBlur={e => handleUpdateField(u.id, 'weeklyStudyGoal', e.target.value, true)}
+                    <input type="number" step="0.1" defaultValue={u.dailyStudyGoal !== undefined ? u.dailyStudyGoal : (u.weeklyStudyGoal ? u.weeklyStudyGoal / 7 : 2)} 
+                      onBlur={e => handleUpdateField(u.id, 'dailyStudyGoal', e.target.value, true)}
                       className="bg-transparent border-b border-neon-green/50 w-12 text-center" />
                   </td>
                   <td>
-                    <input type="number" defaultValue={u.totalStudyHours} 
+                    <input type="number" step="0.1" defaultValue={u.totalStudyHours} 
                       onBlur={e => handleUpdateField(u.id, 'totalStudyHours', e.target.value, true)}
                       className="bg-transparent border-b border-neon-green/50 w-14 text-center" />
                   </td>
@@ -411,7 +480,6 @@ const AdminPanel = ({ user }) => {
         </div>
       </TerminalWindow>
 
-      {/* HISTORY MODAL OVERLAY */}
       {historyModal && (
         <div className="absolute top-10 left-10 right-10 bottom-10 bg-black/90 border border-red-500 shadow-[0_0_20px_#ff0000] z-50 p-6 overflow-y-auto">
           <div className="flex justify-between items-center mb-6 border-b border-red-500 pb-2">
@@ -486,9 +554,11 @@ function App() {
               displayName: currentUser.displayName || currentUser.email,
               email: currentUser.email,
               photoURL: currentUser.photoURL || 'https://via.placeholder.com/50',
+              dailyStudyGoal: 2,
               weeklyStudyGoal: 10,
               totalStudyHours: 0,
               crew: null,
+              fruit: null,
               bountyBase: 10000,
               createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
