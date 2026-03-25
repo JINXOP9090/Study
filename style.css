@@ -447,8 +447,274 @@ body::before {
 .text-vapor-blue { color: #6080c0; }
 .text-bounty { color: #c08020; font-weight: bold; }
 
-/* Responsive adjustments */
+/* ============================================
+   RESPONSIVE / MOBILE OVERHAUL
+   ============================================ */
+
+/* --- Tablet & below (<=768px) --- */
 @media (max-width: 768px) {
-  .desktop-icons { display: none; }
-  .y2k-taskbar { display: none; }
+
+  /* Desktop icons → horizontal strip at top */
+  .desktop-icons {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: 18px;
+    padding: 6px 10px;
+    background: linear-gradient(180deg, #d8d0e8, #c8c0d8);
+    border-bottom: 2px solid #a0a0b8;
+    z-index: 50;
+  }
+
+  .desktop-icon {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .folder-icon {
+    width: 30px;
+    height: 24px;
+  }
+  .folder-icon::before {
+    width: 14px;
+    height: 7px;
+    top: -7px;
+  }
+  .folder-emoji { font-size: 12px; }
+
+  .desktop-icon-label {
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Push body content below icon strip */
+  body {
+    padding-top: 42px;
+  }
+
+  /* Taskbar: simplified, thinner */
+  .y2k-taskbar {
+    height: 34px;
+    padding: 0 4px;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .y2k-start-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .y2k-taskbar-item {
+    font-size: 9px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .y2k-taskbar-clock {
+    font-size: 10px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+
+  /* Windows: full-width, reduced padding */
+  .y2k-window {
+    margin: 0 !important;
+    border-radius: 0;
+  }
+
+  .y2k-window-body {
+    padding: 10px;
+  }
+
+  .y2k-titlebar {
+    padding: 2px 4px;
+    min-height: 24px;
+  }
+
+  .y2k-titlebar-text {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Grid: single column */
+  .grid.grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Stat cards in profile: 3-col still but smaller */
+  .grid.grid-cols-3 {
+    gap: 8px !important;
+  }
+  .grid.grid-cols-3 > div {
+    padding: 6px !important;
+  }
+  .grid.grid-cols-3 .text-2xl {
+    font-size: 1.1rem !important;
+  }
+
+  /* Tables: smaller text, scrollable container */
+  .y2k-table {
+    font-size: 11px;
+  }
+  .y2k-table th {
+    padding: 4px 2px;
+    font-size: 10px;
+  }
+  .y2k-table td {
+    padding: 6px 2px;
+  }
+
+  /* Leaderboard table scroll */
+  .overflow-y-auto {
+    max-height: 300px !important;
+  }
+
+  /* Buttons: touch-friendly min size */
+  .y2k-btn {
+    min-height: 36px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  /* Inputs: bigger tap targets */
+  .y2k-input {
+    min-height: 36px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  /* Progress bar */
+  .y2k-progress-track {
+    height: 20px;
+  }
+
+  /* Padding adjustments */
+  .p-4.md\\:p-8 {
+    padding: 8px !important;
+  }
+
+  .px-4.md\\:px-8 {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  /* Header */
+  header .text-2xl {
+    font-size: 1.1rem !important;
+  }
+
+  /* Profile image smaller on mobile */
+  .w-14.h-14 {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .w-20.h-20 {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  /* Admin panel table: horizontal scroll */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Admin table inputs: compact */
+  .y2k-table .y2k-input {
+    min-height: 28px;
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+
+  /* Crew tabs: scroll horizontally */
+  .flex.gap-2.mb-3.pb-2.overflow-x-auto {
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .flex.gap-2.mb-3.pb-2.overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* History modal: full-screen on mobile */
+  .fixed.inset-0 .y2k-window {
+    max-height: 90vh !important;
+    margin: 8px !important;
+  }
+
+  /* Leaderboard avatar smaller */
+  .w-6.h-6 {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Maximized window adjustments */
+  .y2k-window-maximized {
+    top: 42px;
+    bottom: 34px;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* --- Extra small phones (<=400px) --- */
+@media (max-width: 400px) {
+
+  .desktop-icons {
+    gap: 10px;
+    padding: 4px 6px;
+  }
+
+  .desktop-icon-label {
+    display: none;
+  }
+
+  .folder-icon {
+    width: 26px;
+    height: 20px;
+  }
+
+  .y2k-titlebar-text {
+    font-size: 10px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Profile stats: 2-col on very small screens */
+  .grid.grid-cols-3 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .y2k-table {
+    font-size: 10px;
+  }
+
+  .y2k-btn {
+    font-size: 11px;
+    padding: 5px 8px;
+    min-height: 32px;
+  }
+
+  .y2k-input {
+    font-size: 11px;
+    min-height: 32px;
+  }
+
+  /* Hide less important leaderboard columns */
+  .y2k-table th:nth-child(4),
+  .y2k-table td:nth-child(4) {
+    display: none;
+  }
 }
